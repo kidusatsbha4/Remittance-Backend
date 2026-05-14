@@ -10,6 +10,10 @@ import { Kyc } from './src/kyc/entities/kyc.entity'; // replace with your entity
 import {MerchantKey } from './src/merchant-keys/entities/merchant-keys.entity'; // replace with your entity
 import {Transaction } from './src/transactions/entities/transaction.entity'; // replace with your entity
 import {Manual } from './src/manuals/entities/manual.entity'; // replace with your entity
+import {Bonus } from './src/bonus/entities/bonus.entity'; // replace with your entity
+import {TransferType } from './src/transfer-type/entities/transfer-type.entity'; // replace with your entity
+
+
 
 
 
@@ -21,7 +25,7 @@ export const AppDataSource = new DataSource({
   username: 'postgres',
   password: '123',
   database: 'remittance',
-  entities: [User,UserRole,Permission,Role,RolePermission,Kyc,MerchantKey,Transaction,Manual],
+  entities: [User,UserRole,Permission,Role,RolePermission,Kyc,MerchantKey,Transaction,Manual,Bonus,TransferType],
   migrations: ['src/migrations/*.ts'],
   synchronize: false,
 });

@@ -12,6 +12,9 @@ import { TransactionsModule } from './transactions/transactions.module';
 import { InternalTransferModule } from './internal-transfer/internal-transfer.module';
 import { PaymentsModule } from './payments/payments.module';
 import { ManualModule } from './manuals/manual.module';
+import {BonusModule } from './bonus/bonus.module';
+import {TransferTypeModule } from './transfer-type/transfer-type.module';
+
 
 
 
@@ -42,7 +45,7 @@ import { AppService } from './app.service';
       inject: [ConfigService],
     }),
     UsersModule,RolesModule,PermissionsModule,RolePermissionsModule,UserRolesModule,KycModule,MerchantKeysModule,
-    TransactionsModule,InternalTransferModule,PaymentsModule,ManualModule
+    TransactionsModule,InternalTransferModule,PaymentsModule,ManualModule,BonusModule,TransferTypeModule
   ],
   controllers: [AppController,],
   providers: [AppService],

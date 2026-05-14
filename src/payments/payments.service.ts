@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, } from '@nestjs/common';
 import * as cybersourceRestApi from 'cybersource-rest-client';
 import { ConfigService } from '@nestjs/config';
 // ✅ UPDATED
@@ -7,9 +7,12 @@ import { TransactionsService } from '../transactions/transactions.service';
 import { InternalTransferDto } from '../internal-transfer/dto/internal-transfer.dto';
 import { ManualService } from '../manuals/manual.service';
 import { CreateManualDto } from '../manuals/dto/create-manual.dto';
+import { TransferType, TransferTypeEnum } from '../transfer-type/entities/transfer-type.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 
-const transfer ="manual"
+// const transfer ="manual"
 
 const fromAccount = '0083920830101';
 const fromAccountHolder = 'MELAT TESFAYE BIREMJI';
@@ -21,20 +24,32 @@ const currency = 'ETB';
 const toCurrency = 'ETB';
 
 const amount = '1';
-const remark = 'tr';
-  const eCurrency = "USD";
-  const bonus ="50";
+const remark = 'man';
+const eCurrency = "USD";
+const bonus = "50";
 
 @Injectable()
 export class PaymentsService {
   private configObj;
- private configObjP;
+  private configObjP;
 
+  async getActiveTransferType(): Promise<TransferTypeEnum> {
+    const type = await this.transferTypeRepo.findOne({
+      where: { status: true },
+    });
 
+    if (!type) {
+      throw new Error('No active transfer type found');
+    }
+
+    return type.transfer_type;
+  }
   constructor(private configService: ConfigService,
-               private internalTransferService: InternalTransferService,
-               private transactionsService: TransactionsService,
-               private manualService: ManualService,
+    private internalTransferService: InternalTransferService,
+    private transactionsService: TransactionsService,
+    private manualService: ManualService,
+    @InjectRepository(TransferType)
+    private transferTypeRepo: Repository<TransferType>,
 
   ) {
     this.configObj = {
@@ -49,7 +64,7 @@ export class PaymentsService {
         logDirectory: 'log',
         loggingLevel: 'debug',
         enableMasking: true
-    },
+      },
     };
     this.configObjP = {
       authenticationType: 'HTTP_SIGNATURE',
@@ -59,7 +74,7 @@ export class PaymentsService {
       runEnvironment: 'apitest.cybersource.com',
       logConfiguration: {
         enableLog: false
-    },
+      },
     };
   }
 
@@ -82,7 +97,7 @@ export class PaymentsService {
 
       instance.generateCaptureContext(request, (error, data) => {
         if (error) {
-          console.log("error",error)
+          console.log("error", error)
           reject(error.response ? error.response.text : error.message);
 
         } else {
@@ -138,7 +153,7 @@ export class PaymentsService {
   //     commerceIndicator: "internet",
   //     "authorizationOptions": {
   //           "aftIndicator": "true",
-            
+
   //       }
   //   };
 
@@ -183,203 +198,203 @@ export class PaymentsService {
   // }
 
   // ✅ UPDATED FULL FLOW
-async processPayment(body: any, user: any) {
-  return new Promise((resolve, reject) => {
-    const {
-      transientToken,
-      firstName,
-      lastName,
-      address1,
-      locality,
-      administrativeArea,
-      postalCode,
-      country,
-      email,
-// toAccountHolder,
-//        toAccount,
-//       amount,
-//        currency,
-//        remark,
-      exchange_rate,
-    } = body;
+  async processPayment(body: any, user: any) {
+    return new Promise((resolve, reject) => {
+      const {
+        transientToken,
+        firstName,
+        lastName,
+        address1,
+        locality,
+        administrativeArea,
+        postalCode,
+        country,
+        email,
+        // toAccountHolder,
+        //        toAccount,
+        //       amount,
+        //        currency,
+        //        remark,
+        exchange_rate,
+      } = body;
 
-    const apiClient = new cybersourceRestApi.ApiClient();
-    const paymentsInstance = new cybersourceRestApi.PaymentsApi(
-      this.configObjP,
-      apiClient,
-    );
+      const apiClient = new cybersourceRestApi.ApiClient();
+      const paymentsInstance = new cybersourceRestApi.PaymentsApi(
+        this.configObjP,
+        apiClient,
+      );
 
-    const request = new cybersourceRestApi.CreatePaymentRequest();
+      const request = new cybersourceRestApi.CreatePaymentRequest();
 
-    request.clientReferenceInformation = {
-      code: 'ORDER_' + Date.now(),
-    };
+      request.clientReferenceInformation = {
+        code: 'ORDER_' + Date.now(),
+      };
 
-    request.tokenInformation = {
-      transientTokenJwt: transientToken,
-    };
+      request.tokenInformation = {
+        transientTokenJwt: transientToken,
+      };
 
-    request.processingInformation = {
-      capture: true,
-      commerceIndicator: 'internet',
-      authorizationOptions: {
-        aftIndicator: 'true',
-      },
-    };
+      request.processingInformation = {
+        capture: true,
+        commerceIndicator: 'internet',
+        authorizationOptions: {
+          aftIndicator: 'true',
+        },
+      };
 
-    request.orderInformation = {
-      amountDetails: {
-        totalAmount: amount || '5000.00',
-        currency: currency || 'USD',
-      },
-      billTo: {
-        firstName: firstName || 'Guest',
-        lastName: lastName || 'Customer',
-        address1: address1 || 'Main St',
-        locality: locality || 'Addis Ababa',
-        administrativeArea: administrativeArea || 'AA',
-        postalCode: postalCode || '1000',
-        country: country || 'ET',
-        email: email || 'customer@example.com',
-      },
-    };
+      request.orderInformation = {
+        amountDetails: {
+          totalAmount: amount || '5000.00',
+          currency: currency || 'USD',
+        },
+        billTo: {
+          firstName: firstName || 'Guest',
+          lastName: lastName || 'Customer',
+          address1: address1 || 'Main St',
+          locality: locality || 'Addis Ababa',
+          administrativeArea: administrativeArea || 'AA',
+          postalCode: postalCode || '1000',
+          country: country || 'ET',
+          email: email || 'customer@example.com',
+        },
+      };
 
-    // 🔥 CALL CYBERSOURCE
-    paymentsInstance.createPayment(request, async (error, data) => {
-      if (error) {
-        const err = error.response
-          ? JSON.parse(error.response.text)
-          : error;
+      // 🔥 CALL CYBERSOURCE
+      paymentsInstance.createPayment(request, async (error, data) => {
+        if (error) {
+          const err = error.response
+            ? JSON.parse(error.response.text)
+            : error;
 
-        return reject({
-          status: 'failed',
-          message: err?.message || 'Payment failed',
-        });
-      }
-
-      try {
-        // 🔥 CHECK PAYMENT STATUS
-        if (data.status !== 'AUTHORIZED') {
           return reject({
             status: 'failed',
-            message: 'Card not authorized',
-            cybersource: data,
+            message: err?.message || 'Payment failed',
           });
         }
 
-        if (transfer==='manual'){
- const manual=await this.manualService.create(
-          {
+        try {
+          // 🔥 CHECK PAYMENT STATUS
+          if (data.status !== 'AUTHORIZED') {
+            return reject({
+              status: 'failed',
+              message: 'Card not authorized',
+              cybersource: data,
+            });
+          }
+          const transferType = await this.getActiveTransferType();
+          if (transferType === TransferTypeEnum.MANUAL) {
+            const manual = await this.manualService.create(
+              {
+                toAccount,
+                toAccountHolder,
+                amount,
+                currency: 'ETB',
+                toCurrency,
+                eCurrency,
+                remark,
+                bonus,
+                exchange_rate: exchange_rate || null,
+                channel: 'card',
+                external_ref: data.id, // ✅ from CyberSource
+
+              },
+              user,
+            );
+            resolve(manual);
+          }
+          console.log("data", data)
+          // =========================================
+          // 🔥 PREPARE INTERNAL TRANSFER DTO
+          // =========================================
+          const transferDto: InternalTransferDto = {
+            fromAccount,
+            fromAccountHolder,
             toAccount,
             toAccountHolder,
-            amount,
-            currency: 'ETB',
+            currency,
             toCurrency,
-            eCurrency,
+            amount,
             remark,
-            bonus,
-            exchange_rate: exchange_rate || null,
-            channel: 'card',
-            external_ref: data.id, // ✅ from CyberSource
-            
-          },
-          user,
-        );
-resolve(manual);
+
+          };
+
+          console.log("transferDto", transferDto)
+          // 🔥 CALL INTERNAL TRANSFER
+          const transferResponse =
+            await this.internalTransferService.transfer(transferDto);
+
+          // =========================================
+          // 🔥 CHECK TRANSFER RESPONSE
+          // =========================================
+          console.log("transferResponse", transferResponse)
+          console.log("transferResponse.data.status", transferResponse.status)
+          if (!transferResponse.status) {
+
+            const manual = await this.manualService.create(
+              {
+                toAccount,
+                toAccountHolder,
+                amount,
+                currency: 'ETB',
+                toCurrency,
+                eCurrency,
+                remark,
+                bonus,
+                exchange_rate: exchange_rate || null,
+                channel: 'card',
+                external_ref: data.id, // ✅ from CyberSource
+
+              },
+              user,
+            );
+            resolve(manual);
+
+            return reject({
+              status: 'failed',
+              message: transferResponse?.data?.statusDesc || 'Transfer failed from CBS',
+            });
+          }
+          // resolve(transferResponse);
+
+          const txData = transferResponse.data;
+
+          // =========================================
+          // 🔥 SAVE TRANSACTION
+          // =========================================
+          const transaction = await this.transactionsService.create(
+            {
+              beneficiary_acc: toAccount,
+              amount,
+              currency: 'ETB',
+              exchange_rate: exchange_rate || null,
+              status: 'PAID', // ✅ UPDATED
+              channel: 'card',
+              external_ref: data.id, // ✅ from CyberSource
+              failure_reason: null,
+              completed_at: new Date(),
+            },
+            user,
+          );
+
+          //         return resolve({
+
+          //     transferResponse,
+          //     transaction,
+
+          // });
+          resolve(transferResponse);
+
+          // =========================================
+          // 🔥 FINAL RESPONSE TO FRONTEND
+          // =========================================
+          console.log("response", transaction)
+        } catch (err: any) {
+          return reject({
+            status: 'failed',
+            message: err.message || 'Processing failed',
+          });
         }
-         console.log("data",data)
-        // =========================================
-        // 🔥 PREPARE INTERNAL TRANSFER DTO
-        // =========================================
-       const transferDto: InternalTransferDto = {
-  fromAccount,
-  fromAccountHolder,
-  toAccount,
-  toAccountHolder,
-  currency,
-  toCurrency,
-  amount,
-  remark,
-  
-};
-
-console.log("transferDto",transferDto)
-        // 🔥 CALL INTERNAL TRANSFER
-        const transferResponse =
-          await this.internalTransferService.transfer(transferDto);
-
-        // =========================================
-        // 🔥 CHECK TRANSFER RESPONSE
-        // =========================================
-        console.log("transferResponse",transferResponse)
-        console.log("transferResponse.data.status",transferResponse.status)
-        if (!transferResponse.status) {
-
-          const manual=await this.manualService.create(
-          {
-            toAccount,
-            toAccountHolder,
-            amount,
-            currency: 'ETB',
-            toCurrency,
-            eCurrency,
-            remark,
-            bonus,
-            exchange_rate: exchange_rate || null,
-            channel: 'card',
-            external_ref: data.id, // ✅ from CyberSource
-            
-          },
-          user,
-        );
-resolve(manual);
-
-  return reject({
-    status: 'failed',
-    message: transferResponse?.data?.statusDesc || 'Transfer failed from CBS',
-  });
-}
-// resolve(transferResponse);
-
-        const txData = transferResponse.data;
-
-        // =========================================
-        // 🔥 SAVE TRANSACTION
-        // =========================================
-        const transaction=await this.transactionsService.create(
-          {
-            beneficiary_acc: toAccount,
-            amount,
-            currency: 'ETB',
-            exchange_rate: exchange_rate || null,
-            status: 'PAID', // ✅ UPDATED
-            channel: 'card',
-            external_ref: data.id, // ✅ from CyberSource
-            failure_reason: null,
-            completed_at: new Date(),
-          },
-          user,
-        );
-
-//         return resolve({
-  
-//     transferResponse,
-//     transaction,
-  
-// });
-resolve(transferResponse);
-
-        // =========================================
-        // 🔥 FINAL RESPONSE TO FRONTEND
-        // =========================================
-console.log("response",transaction)
-      } catch (err: any) {
-        return reject({
-          status: 'failed',
-          message: err.message || 'Processing failed',
-        });
-      }
+      });
     });
-  });
-}
+  }
 }
