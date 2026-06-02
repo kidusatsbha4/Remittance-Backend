@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>CyberSource Flex</title>
+
+  <style>
+    body{
+      font-family: Arial;
+      padding:20px;
+    }
+
+    .field{
+      height:50px;
+      border:1px solid #ccc;
+      border-radius:10px;
+      padding:10px;
+      margin-bottom:20px;
+    }
+
+    button{
+      width:100%;
+      height:50px;
+      background:#ef7d00;
+      color:white;
+      border:none;
+      border-radius:10px;
+      font-weight:bold;
+      cursor:pointer;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h2>Secure Payment</h2>
+
+  <div id="number-container" class="field"></div>
+
+  <div id="securityCode-container" class="field"></div>
+
+  <button id="payBtn">
+    Pay
+  </button>
+
+  <script>
+
+    // Injected from NestJS
+    const captureContext = "__CAPTURE_CONTEXT__";
+
+    // Decode JWT
+    const payload = JSON.parse(
+      atob(
+        captureContext
+          .split('.')[1]
+          .replace(/-/g, '+')
+          .replace(/_/g, '/')
+      )
+    );
+
+    const context = payload.ctx[0].data;
+
+    // Load Flex SDK
+    const script = document.createElement('script');
+
+    script.src = context.clientLibrary;
+
+    script.onload = () => {
+
+      const flex = new Flex(captureContext);
+
+      const microform = flex.microform({
+
+        styles:{
+          input:{
+            "font-size":"16px",
+            color:"#334155"
+          }
+        }
+      });
+
+      microform
+        .createField('number',{
+          placeholder:'•••• •••• •••• ••••'
+        })
+        .load('#number-container');
+
+      microform
+        .createField('securityCode',{
+          placeholder:'•••'
+        })
+        .load('#securityCode-container');
+
+      // Generate transient token
+      document
+        .getElementById('payBtn')
+        .addEventListener('click', () => {
+
+          microform.createToken(
+            {
+              expirationMonth:'12',
+              expirationYear:'2030'
+            },
+
+            async (err, token) => {
+
+              if(err){
+                alert(err.message);
+                return;
+              }
+
+              console.log("TOKEN:", token);
+
+              // SEND TOKEN TO NESTJS
+              const response = await fetch(
+                '/payments/process-payment',
+                {
+                  method:'POST',
+                  headers:{
+                    'Content-Type':'application/json'
+                  },
+                  body:JSON.stringify({
+                    transientToken: token,
+                    amount: 100
+                  })
+                }
+              );
+
+              const result = await response.json();
+
+              console.log(result);
+
+              alert("Payment Complete");
+            }
+          );
+        });
+    };
+
+    document.head.appendChild(script);
+
+  </script>
+
+</body>
+</html>
