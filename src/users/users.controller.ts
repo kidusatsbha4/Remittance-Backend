@@ -10,6 +10,8 @@ import { ChangePinDto } from './dto/change-pin.dto'; // ✅ NEW
 import { ForgotPinDto } from './dto/forgot-pin.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ResetPinDto } from './dto/reset-pin.dto';
+import type { Response } from 'express';
+import { Res } from '@nestjs/common';
 
 @UseInterceptors(ClassSerializerInterceptor) // Enables the @Exclude() decorator
 @Controller('users')
@@ -21,12 +23,19 @@ export class UsersController {
     return this.usersService.create(createUserDto);
   }
 
-  @Post('login')
-  @HttpCode(HttpStatus.OK)
-  login(@Body() loginDto: LoginDto) {
-    return this.usersService.login(loginDto);
-  }
-
+  // @Post('login')
+  // @HttpCode(HttpStatus.OK)
+  // login(@Body() loginDto: LoginDto) {
+  //   return this.usersService.login(loginDto);
+  // }
+@Post('login')
+@HttpCode(HttpStatus.OK)
+login(
+  @Body() loginDto: LoginDto,
+  @Res({ passthrough: true }) res: Response,
+) {
+  return this.usersService.login(loginDto, res);
+}
   // PROTECTED: Only logged-in users can see the list
   @UseGuards(AuthGuard)
   @Get()

@@ -82,175 +82,7 @@ export class PaymentsService {
 // ==============================
 // ✅ NEW METHOD: Build Microform HTML
 // ==============================
-async buildMicroformHtml(captureContext: string) {
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <title>CyberSource Static Test</title>
 
-  <script src="https://flex.cybersource.com/microform/latest/microform.min.js"></script>
-
-  <style>
-    body {
-      font-family: Arial;
-      padding: 40px;
-      background: #f7f7f7;
-    }
-
-    .box {
-      max-width: 420px;
-      margin: auto;
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-    }
-
-    .static {
-      background: #f0f0f0;
-      padding: 10px;
-      margin-bottom: 10px;
-      font-family: monospace;
-    }
-
-    .field {
-      border: 1px solid #ccc;
-      padding: 10px;
-      margin-bottom: 10px;
-      min-height: 20px;
-    }
-
-    button {
-      width: 100%;
-      padding: 10px;
-      background: #1a73e8;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: #0f5bd3;
-    }
-  </style>
-</head>
-
-<body>
-
-<div class="box">
-  <h2>Static Test Payment</h2>
-
-  <!-- ======================
-       STATIC DISPLAY ONLY
-  ======================= -->
-  <div class="static">
-    Card: 4111 1111 1111 1111
-  </div>
-
-  <div class="static">
-    Expiry: 12 / 2031
-  </div>
-
-  <div class="static">
-    CVV: 123
-  </div>
-
-  <hr />
-
-  <!-- ======================
-       MICROFORM FIELDS
-  ======================= -->
-  <div id="number-container" class="field"></div>
-
-  <div id="exp-month" class="field"></div>
-  <div id="exp-year" class="field"></div>
-
-  <div id="cvv-container" class="field"></div>
-
-  <button onclick="pay()">Pay Now</button>
-</div>
-
-<script>
-  const captureContext = "${captureContext}";
-
-  const flex = new Flex(captureContext);
-  const microform = flex.microform();
-
-  // ======================
-  // NUMBER
-  // ======================
-  microform.createField('number', {
-    placeholder: 'Card Number (use 4111...)'
-  }).load('#number-container');
-
-  // ======================
-  // MONTH
-  // ======================
-  const expMonth = microform.createField('expirationMonth', {
-    placeholder: 'MM (12)'
-  });
-  expMonth.load('#exp-month');
-
-  // ======================
-  // YEAR
-  // ======================
-  const expYear = microform.createField('expirationYear', {
-    placeholder: 'YYYY (2031)'
-  });
-  expYear.load('#exp-year');
-
-  // ======================
-  // CVV
-  // ======================
-  microform.createField('securityCode', {
-    placeholder: 'CVV (123)'
-  }).load('#cvv-container');
-
-  // ======================
-  // TOKEN + SUBMIT
-  // ======================
-  async function pay() {
-
-    microform.createToken({
-      expirationMonth: expMonth,
-      expirationYear: expYear
-    }, async function (err, response) {
-
-      if (err) {
-        console.error("Token error:", err);
-        alert("Token failed");
-        return;
-      }
-
-      const transientToken = response.token;
-
-      console.log("TOKEN:", transientToken);
-
-      const res = await fetch('/payments/process-token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          transientToken,
-          amount: 100,
-          currency: 'USD'
-        })
-      });
-
-      const data = await res.json();
-
-      console.log("RESULT:", data);
-
-      alert("Payment Done");
-    });
-  }
-</script>
-
-</body>
-</html>
-  `;
-}
   // 🔹 Generate Capture Context
   async generateCaptureContext() {
     console.log("tesfay")
@@ -266,7 +98,7 @@ async buildMicroformHtml(captureContext: string) {
       request.clientVersion = 'v2';
       request.allowedPaymentTypes = ['CARD'];
       request.allowedCardNetworks = ['VISA', 'MASTERCARD', 'AMEX'];
-      request.targetOrigins = ['http://localhost:3000'];
+      request.targetOrigins = [  'http://localhost:3000','https://yippee-unmolded-porridge.ngrok-free.dev'];
 
       instance.generateCaptureContext(request, (error, data) => {
         if (error) {
@@ -274,6 +106,7 @@ async buildMicroformHtml(captureContext: string) {
           reject(error.response ? error.response.text : error.message);
 
         } else {
+          console.log("data",data)
           resolve(data);
         }
       });
@@ -1299,7 +1132,7 @@ console.log("customer_id............",customer_id)
               : error,
           );
         }
-
+console.log("payment data",data)
         try {
           // 🔥 CHECK PAYMENT STATUS
           if (data.status !== 'AUTHORIZED') {

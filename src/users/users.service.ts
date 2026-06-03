@@ -13,6 +13,7 @@ import { ForgotPinDto } from './dto/forgot-pin.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ResetPinDto } from './dto/reset-pin.dto';
 import { ConfigService } from '@nestjs/config'; // UPDATED
+import { Response } from 'express';
 
 import * as nodemailer from 'nodemailer';
 
@@ -264,8 +265,7 @@ export class UsersService {
 //     },
 //   };
 // }
-
-async login(loginDto: LoginDto) {
+async login(loginDto: LoginDto, res: Response) {
   const user = await this.usersRepository.findOne({
     where: { email: loginDto.email },
     relations: [
@@ -282,7 +282,14 @@ async login(loginDto: LoginDto) {
   }
 
   const payload = { sub: Number(user.id), email: user.email };
+const token = await this.jwtService.signAsync(payload);
 
+   res.cookie('access_token', token, {
+    httpOnly: true,
+    secure: false, // localhost only
+    sameSite: 'lax',
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+  });
   // Flatten permissions
   const permissions = [
     ...new Set(
@@ -293,7 +300,7 @@ async login(loginDto: LoginDto) {
   ];
 
   return {
-    access_token: await this.jwtService.signAsync(payload),
+    // access_token: await this.jwtService.signAsync(payload),
 
     user: {
       id: user.id,
@@ -328,6 +335,69 @@ async login(loginDto: LoginDto) {
     },
   };
 }
+// async login(loginDto: LoginDto) {
+//   const user = await this.usersRepository.findOne({
+//     where: { email: loginDto.email },
+//     relations: [
+//       'userRoles',
+//       'userRoles.role',
+//       'userRoles.role.rolePermissions',
+//       'userRoles.role.rolePermissions.permission',
+//       'kyc', // ✅ KYC included
+//     ],
+//   });
+
+//   if (!user || !(await bcrypt.compare(loginDto.pin, user.pin))) {
+//     throw new UnauthorizedException('Invalid credentials');
+//   }
+
+//   const payload = { sub: Number(user.id), email: user.email };
+
+//   // Flatten permissions
+//   const permissions = [
+//     ...new Set(
+//       user.userRoles.flatMap(ur =>
+//         ur.role.rolePermissions.map(rp => rp.permission.name),
+//       ),
+//     ),
+//   ];
+
+//   return {
+//     access_token: await this.jwtService.signAsync(payload),
+
+//     user: {
+//       id: user.id,
+//       email: user.email,
+//       first_name: user.first_name,
+//       last_name: user.last_name,
+//       phone_number: user.phone_number,
+
+//       roles: user.userRoles.map(ur => ({
+//         id: ur.role.id,
+//         name: ur.role.name,
+//       })),
+
+//       permissions,
+
+//       kyc: user.kyc
+//         ? {
+//             id: user.kyc.id,
+//             user_id: user.kyc.user_id,
+//             id_type: user.kyc.id_type,
+//             dob: user.kyc.dob,
+//             address: user.kyc.address,
+//             city: user.kyc.city,
+//             country: user.kyc.country,
+//             id_photo_path: user.kyc.id_photo_path,
+//             selfie_photo_path: user.kyc.selfie_photo_path,
+//             verified: user.kyc.verified,
+//             verified_at: user.kyc.verified_at,
+//             created_at: user.kyc.created_at,
+//           }
+//         : null,
+//     },
+//   };
+// }
 async changePin(userId: number, dto: ChangePinDto) {
   if (!userId || isNaN(userId)) {
     throw new BadRequestException('Invalid user session');

@@ -2,8 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { Reflector } from '@nestjs/core'; // ✅ ADD THIS
-
-import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import cookieParser from 'cookie-parser';import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import * as fs from 'fs';
 
 async function bootstrap() {
@@ -21,8 +20,13 @@ async function bootstrap() {
 
  
 
+// Register cookie parser middleware
+  app.use(cookieParser());
 
-  app.enableCors(); // Allows all origins
+ app.enableCors({
+  origin: 'http://localhost:3000', // Vue app URL
+  credentials: true,
+});
   
   // This enables the validation constraints in your DTOs
   app.useGlobalPipes(new ValidationPipe({
