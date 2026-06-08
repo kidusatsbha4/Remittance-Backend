@@ -12,6 +12,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import axios from 'axios';
 import * as crypto from 'crypto';
+import { v4 as uuidv4 } from 'uuid';
+
+const sessions = new Map(); // swap with Redis in production
+
 
 // const transfer ="manual"
 
@@ -82,7 +86,37 @@ export class PaymentsService {
 // ==============================
 // ✅ NEW METHOD: Build Microform HTML
 // ==============================
+// ============================
+  // 1. CREATE SESSION
+  // ============================
+  async createSession(body: any) {
+    const sessionId = uuidv4();
 
+    const captureContext = await this.generateCaptureContext();
+
+    const session = {
+      sessionId,
+      captureContext,
+      amount: 100,
+  currency: 'USD',
+  customerId: '123',
+      status: 'INITIATED',
+      createdAt: new Date(),
+    };
+
+    sessions.set(sessionId, session);
+
+    return {
+      sessionId,
+      checkoutUrl: `http://localhost/payments/card-form?sessionId=${sessionId}`,
+    };
+  }
+  // ============================
+  // 2. GET SESSION
+  // ============================
+  getSession(sessionId: string) {
+    return sessions.get(sessionId);
+  }
   // 🔹 Generate Capture Context
   async generateCaptureContext() {
     console.log("tesfay")
@@ -112,7 +146,30 @@ export class PaymentsService {
       });
     });
   }
+ // ============================
+  // 4. PROCESS TOKEN
+  // ============================
+  async processToken(body: any) {
+    const { sessionId, transientToken } = body;
 
+    const session = sessions.get(sessionId);
+
+    if (!session) {
+      throw new Error('Invalid session');
+    }
+
+    // 👉 Here you plug your existing CyberSource payment logic
+    console.log('TOKEN RECEIVED:', transientToken);
+
+    session.status = 'TOKEN_RECEIVED';
+    session.token = transientToken;
+
+    return {
+      status: 'success',
+      message: 'Token processed successfully',
+      sessionId,
+    };
+  }
   // 🔹 Process Payment
   // async processPayment(body: any) {
   //   return new Promise((resolve, reject) => {

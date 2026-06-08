@@ -20,7 +20,7 @@ import { multerConfig } from '../common/config/multer.config';
 @UseInterceptors(ClassSerializerInterceptor) // Enables the @Exclude() decorator
 
 @Controller('kyc')
-@UseGuards(AuthGuard)
+// @UseGuards(AuthGuard)
 export class KycController {
   constructor(private readonly kycService: KycService) {}
 
@@ -34,6 +34,27 @@ export class KycController {
     multerConfig,
   ),
 )
+// @UseInterceptors(
+//   FileInterceptor('file', {
+//     limits: {
+//       fileSize: 5 * 1024 * 1024,
+//     },
+
+//     fileFilter(req, file, cb) {
+//       const allowed = [
+//         'image/jpeg',
+//         'image/png',
+//         'application/pdf',
+//       ];
+
+//       cb(
+//         null,
+//         allowed.includes(file.mimetype),
+//       );
+//     },
+//   }),
+// )
+
 create(
   @Body() body,
   @UploadedFiles() files,

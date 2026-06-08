@@ -298,7 +298,7 @@ const token = await this.jwtService.signAsync(payload);
       ),
     ),
   ];
-
+console.log("user",user)
   return {
     // access_token: await this.jwtService.signAsync(payload),
 

@@ -28,6 +28,13 @@ export class UsersController {
   // login(@Body() loginDto: LoginDto) {
   //   return this.usersService.login(loginDto);
   // }
+
+  //  @Throttle({
+  //   default: {
+  //     limit: 5,
+  //     ttl: 15 * 60 * 1000,
+  //   },
+  // })
 @Post('login')
 @HttpCode(HttpStatus.OK)
 login(
