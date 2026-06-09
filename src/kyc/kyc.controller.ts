@@ -55,6 +55,13 @@ export class KycController {
 //   }),
 // )
 
+// @Throttle({
+//   default: {
+//     ttl: 60_000,
+//     limit: 5, // very strict
+//   },
+// })
+
 create(
   @Body() body,
   @UploadedFiles() files,

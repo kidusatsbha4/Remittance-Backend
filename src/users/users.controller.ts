@@ -12,6 +12,7 @@ import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ResetPinDto } from './dto/reset-pin.dto';
 import type { Response } from 'express';
 import { Res } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 
 @UseInterceptors(ClassSerializerInterceptor) // Enables the @Exclude() decorator
 @Controller('users')
@@ -29,12 +30,12 @@ export class UsersController {
   //   return this.usersService.login(loginDto);
   // }
 
-  //  @Throttle({
-  //   default: {
-  //     limit: 5,
-  //     ttl: 15 * 60 * 1000,
-  //   },
-  // })
+//    @Throttle({
+//   default: {
+//     ttl: 15 * 60 * 1000, // 15 minutes
+//     limit: 5,            // 5 attempts per 15 min
+//   },
+// })
 @Post('login')
 @HttpCode(HttpStatus.OK)
 login(
@@ -96,12 +97,23 @@ update(
     return this.usersService.remove(+id);
   }
 
- 
+//  @Throttle({
+//   default: {
+//     ttl: 60 * 60 * 1000, // 1 hour
+//     limit: 3,            // 3 attempts per hour
+//   },
+// })
 @Post('forgot-pin')
 forgotPin(@Body() dto: ForgotPinDto) {
   return this.usersService.forgotPin(dto);
 }
 
+// @Throttle({
+//   default: {
+//     ttl: 60_000, // 1 minute
+//     limit: 3,    // 3 OTP requests per minute
+//   },
+// })
 @Post('verify-otp')
 verifyOtp(@Body() dto: VerifyOtpDto) {
   return this.usersService.verifyOtp(dto);

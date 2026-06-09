@@ -14,7 +14,8 @@ import { PaymentsModule } from './payments/payments.module';
 import { ManualModule } from './manuals/manual.module';
 import {BonusModule } from './bonus/bonus.module';
 import {TransferTypeModule } from './transfer-type/transfer-type.module';
-
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 
 
 
@@ -27,7 +28,12 @@ import { AppService } from './app.service';
   imports: [
     // UPDATED: Added ConfigModule to load .env globally
     ConfigModule.forRoot({ isGlobal: true }),
-    
+//     ThrottlerModule.forRoot([
+//   {
+//     ttl: 60_000,   // 1 minute
+//     limit: 120,    // 120 requests per minute per IP           // max 2 requests
+//   },
+// ]),
     // UPDATED: Changed to forRootAsync to use environment variables
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -48,7 +54,10 @@ import { AppService } from './app.service';
     TransactionsModule,InternalTransferModule,PaymentsModule,ManualModule,BonusModule,TransferTypeModule
   ],
   controllers: [AppController,],
-  providers: [AppService],
+  providers: [AppService, {
+    provide: APP_GUARD,
+    useClass: ThrottlerGuard,
+  },],
 })
 export class AppModule {}
 

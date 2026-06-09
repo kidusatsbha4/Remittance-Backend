@@ -4,6 +4,7 @@ import { AppModule } from './app.module';
 import { Reflector } from '@nestjs/core'; // ✅ ADD THIS
 import cookieParser from 'cookie-parser';import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import * as fs from 'fs';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
 
@@ -12,13 +13,13 @@ async function bootstrap() {
   //   cert: fs.readFileSync('./ssl/cert.pem'),
   // };
 
-  const app = await NestFactory.create(AppModule
+  const app = await NestFactory.create<NestExpressApplication>(AppModule
   //   , {
   //   httpsOptions,
   // }
 );
 
- 
+ app.set('trust proxy', 1);
 
 // Register cookie parser middleware
   app.use(cookieParser());
@@ -122,3 +123,19 @@ app.useBodyParser('json', {
 //     },
 //   }),
 // );
+
+// For Production CyberSource
+
+// I would further add:
+
+// helmet({
+//   hsts: {
+//     maxAge: 31536000,
+//     includeSubDomains: true,
+//     preload: true,
+//   },
+
+//   referrerPolicy: {
+//     policy: 'strict-origin-when-cross-origin',
+//   },
+// });
