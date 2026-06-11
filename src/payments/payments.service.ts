@@ -1316,4 +1316,64 @@ console.log("payment data",data)
     );
   });
 }
+
+async search(payload: any) {
+  const merchantId = this.configService.get('MERCHANT_ID');
+  const keyId = this.configService.get('REST_KEY_ID');
+  const secretKey = this.configService.get('REST_SHARED_SECRET');
+
+  const host = 'apitest.cybersource.com';
+  const resource = '/tss/v2/searches';
+  const method = 'post';
+console.log("payload",payload)
+  const body = JSON.stringify(payload);
+
+  const date = new Date().toUTCString();
+
+  // Digest
+  const digest =
+    'SHA-256=' +
+    crypto
+      .createHash('sha256')
+      .update(body, 'utf8')
+      .digest('base64');
+
+  const signatureString =
+    `host: ${host}\n` +
+    `v-c-date: ${date}\n` +
+    `request-target: ${method} ${resource}\n` +
+    `digest: ${digest}\n` +
+    `v-c-merchant-id: ${merchantId}`;
+
+  const signature = crypto
+    .createHmac(
+      'sha256',
+      Buffer.from(secretKey, 'base64'),
+    )
+    .update(signatureString)
+    .digest('base64');
+
+  const authHeader =
+    `keyid="${keyId}", ` +
+    `algorithm="HmacSHA256", ` +
+    `headers="host v-c-date request-target digest v-c-merchant-id", ` +
+    `signature="${signature}"`;
+
+  const response = await axios.post(
+    `https://${host}${resource}`,
+    payload,
+    {
+      headers: {
+        host: host,
+        'v-c-date': date,
+        digest: digest,
+        'v-c-merchant-id': merchantId,
+        signature: authHeader,
+        'Content-Type': 'application/json',
+      },
+    },
+  );
+
+  return response.data;
+}
 }

@@ -14,8 +14,8 @@ import { PaymentsModule } from './payments/payments.module';
 import { ManualModule } from './manuals/manual.module';
 import {BonusModule } from './bonus/bonus.module';
 import {TransferTypeModule } from './transfer-type/transfer-type.module';
-import { APP_GUARD } from '@nestjs/core';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+//import { APP_GUARD } from '@nestjs/core';
+//import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 
 
 
@@ -54,10 +54,12 @@ import { AppService } from './app.service';
     TransactionsModule,InternalTransferModule,PaymentsModule,ManualModule,BonusModule,TransferTypeModule
   ],
   controllers: [AppController,],
-  providers: [AppService, {
-    provide: APP_GUARD,
-    useClass: ThrottlerGuard,
-  },],
+  providers: [AppService,
+  //    {
+  //   provide: APP_GUARD,
+  //   useClass: ThrottlerGuard,
+  // },
+],
 })
 export class AppModule {}
 

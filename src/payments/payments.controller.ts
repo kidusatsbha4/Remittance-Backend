@@ -465,4 +465,10 @@ async challengeReturn(
 async pay(@Body() body: any, @Request() req) {
   return this.paymentsService.pay(body, req.user);
 }
+
+@Post('search')
+@HttpCode(HttpStatus.OK)
+async search(@Body() body: any) {
+  return this.paymentsService.search(body);
+}
 }

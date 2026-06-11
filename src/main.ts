@@ -2,7 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { Reflector } from '@nestjs/core'; // ✅ ADD THIS
-import cookieParser from 'cookie-parser';import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import cookieParser from 'cookie-parser';
+import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import * as fs from 'fs';
 import { NestExpressApplication } from '@nestjs/platform-express';
 
@@ -19,13 +20,13 @@ async function bootstrap() {
   // }
 );
 
- app.set('trust proxy', 1);
+//  app.set('trust proxy', 1);
 
 // Register cookie parser middleware
   app.use(cookieParser());
 
  app.enableCors({
-  // origin: ['http://localhost', 'http://localhost:3000'], // Vue app URL
+   origin: ['http://localhost:3000', 'http://10.195.49.18:3000'], // Vue app URL
   // origin: true,
   credentials: true,
 });
