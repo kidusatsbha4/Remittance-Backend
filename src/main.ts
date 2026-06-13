@@ -20,15 +20,16 @@ async function bootstrap() {
   // }
 );
 
-//  app.set('trust proxy', 1);
+  app.set('trust proxy', 1);
 
 // Register cookie parser middleware
   app.use(cookieParser());
 
  app.enableCors({
-   origin: ['http://localhost:3000', 'http://10.195.49.18:3000'], // Vue app URL
-  // origin: true,
+  //  origin: ['http://localhost:3000', 'http://10.195.49.18:3000'], // Vue app URL
+   origin: true,
   credentials: true,
+  // allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
 });
 
 // app.enableCors({

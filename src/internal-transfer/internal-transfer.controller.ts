@@ -17,7 +17,7 @@ export class InternalTransferController {
   constructor(private readonly service: InternalTransferService) {}
 
   // 🔍 Get account name
-  @UseGuards(AuthGuard) // optional (recommended)
+   @UseGuards(AuthGuard) // optional (recommended)
   @Post('account-info')
   getAccountInfo(@Body() dto: AccountInfoDto) {
     return this.service.getAccountInfo(dto);

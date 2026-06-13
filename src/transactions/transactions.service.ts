@@ -96,7 +96,8 @@ console.log("transaction",transaction)
   // ✅ USER TRANSACTIONS
   async myTransactions(user: any) {
     return this.repo.find({
-      where: { sender_id: user.sub },
+      // where: { sender_id: user.sub },
+      where: { sender_id: 1 },
       order: { created_at: 'DESC' },
     });
   }

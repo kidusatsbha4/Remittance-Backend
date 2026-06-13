@@ -29,7 +29,7 @@ export class UsersService {
   // 1. CREATE
  async create(createUserDto: CreateUserDto) {
   const { email, phone_number, pin, ...userData } = createUserDto;
-
+console.log("createUserDto",createUserDto)
   // 🔍 Check existing users (single query)
   const existingUsers = await this.usersRepository.find({
     where: [
