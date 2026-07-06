@@ -20,7 +20,8 @@ export class ManualService {
   async create(data: any, user: any) {
   const manual = this.repo.create({
     ...data,
-    sender_id: 35,
+     sender_id: user.sub,
+    
    
   });
 console.log("transaction",manual)

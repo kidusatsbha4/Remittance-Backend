@@ -16,7 +16,7 @@ import { AuthGuard } from '../auth/auth.guard';
 
 @UseInterceptors(ClassSerializerInterceptor) // Enables the @Exclude() decorator
 @Controller('transactions')
-// @UseGuards(AuthGuard)
+ @UseGuards(AuthGuard)
 export class TransactionsController {
   constructor(private readonly service: TransactionsService) {}
 

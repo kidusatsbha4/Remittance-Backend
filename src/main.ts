@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe,Logger  } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { Reflector } from '@nestjs/core'; // ✅ ADD THIS
 import cookieParser from 'cookie-parser';
@@ -13,11 +13,15 @@ async function bootstrap() {
   //   key: fs.readFileSync('./ssl/privkey.pem'),
   //   cert: fs.readFileSync('./ssl/cert.pem'),
   // };
-
+ const httpsOptions = {
+    key: fs.readFileSync('./ssl/wegagenSSl2025.key'),
+    cert: fs.readFileSync('./ssl/chaincertwegagenSSl2025.crt'),
+  };
   const app = await NestFactory.create<NestExpressApplication>(AppModule
-  //   , {
-  //   httpsOptions,
-  // }
+    , {
+    httpsOptions,
+    // logger: ['log', 'error', 'warn', 'debug', 'verbose'],
+  }
 );
 
   app.set('trust proxy', 1);
@@ -62,6 +66,10 @@ async function bootstrap() {
    const reflector = app.get(Reflector);
 app.useGlobalInterceptors(new TransformInterceptor(reflector));
   await app.listen(process.env.PORT ?? 3001);
+  Logger.log(
+    `Application is running on: https://localhost:${process.env.PORT ?? 3001}`,
+    'Bootstrap',
+  );
 }
 bootstrap();
 

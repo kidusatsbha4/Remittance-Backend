@@ -13,6 +13,7 @@ import { ResetPinDto } from './dto/reset-pin.dto';
 import type { Response } from 'express';
 import { Res } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { CheckEmailDto } from './dto/check-email.dto';
 
 @UseInterceptors(ClassSerializerInterceptor) // Enables the @Exclude() decorator
 @Controller('users')
@@ -36,6 +37,15 @@ export class UsersController {
 //     limit: 5,            // 5 attempts per 15 min
 //   },
 // })
+
+@UseGuards(AuthGuard)
+@Get('me')
+getCurrentUser(@Request() req) {
+  
+  const userId = req.user?.sub;
+  console.log("userId..................",userId)
+  return this.usersService.findOne(userId);
+}
 @Post('login')
 @HttpCode(HttpStatus.OK)
 login(
@@ -123,4 +133,11 @@ verifyOtp(@Body() dto: VerifyOtpDto) {
 resetPin(@Body() dto: ResetPinDto) {
   return this.usersService.resetPin(dto);
 }
+
+@Post('check-email')
+checkEmail(@Body() dto: CheckEmailDto) {
+  return this.usersService.checkEmail(dto.email);
+}
+
+
 }

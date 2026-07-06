@@ -6,6 +6,8 @@ import { IpsAccountVerificationDto } from './dto/ips-account-verification.dto';
 import { IpsPushPaymentDto } from './dto/ips-push-payment.dto';
 import * as https from 'https';
 
+
+
 interface TokenResponse {
   access_token: string;
   token_type: string;
@@ -26,7 +28,7 @@ const httpsAgent = new https.Agent({
 export class InternalTransferService {
 
   private accountInfoUrl =
-    'http://10.57.40.118:8080/InternalAccountInfo/rest/internal';
+    'https://internalgateway-uat.wegagenbanksc.com.et/fcubsaccservice_api/1.0.0/query_cust_acc_rest';
 
   private transferUrl =
     'http://10.57.40.118:8080/InternalFundTransfer/rest/internalFundTransfer';
@@ -56,21 +58,79 @@ private rateApiKey =
   // =========================================
   // 1. ACCOUNT INFO
   // =========================================
-  async getAccountInfo(dto: AccountInfoDto) {
-    try {
-      const response = await axios.post(
-        this.accountInfoUrl,
-        { account_number: dto.account_number },
-        {
-          timeout: 10000,
-          headers: { 'Content-Type': 'application/json' },
-        },
-      );
+  // async getAccountInfo(dto: AccountInfoDto) {
+  //   try {
+  //     const response = await axios.post(
+  //       this.accountInfoUrl,
+  //       { account_number: dto.account_number },
+  //       {
+  //         timeout: 10000,
+  //         headers: { 'Content-Type': 'application/json' },
+  //       },
+  //     );
 
-      return response.data;
+  //     return response.data;
+  //   } catch (error: any) {
+  //     throw new HttpException(
+  //       error.response?.data || 'Failed to fetch account info',
+  //       HttpStatus.BAD_REQUEST,
+  //     );
+  //   }
+  // }
+
+  
+// async getAccountInfo(dto: AccountInfoDto) {
+//  const response = await axios({
+//   method: 'post',
+//   url: this.accountInfoUrl,
+//   data: {
+//     QueryCustAcc_REQ: {
+//       CUST_AC_NO: dto.account_number,
+//     },
+//   },
+//   headers: {
+//     'Content-Type': 'application/json',
+//   },
+
+//   // bypass TS
+//   ...( { httpsAgent: httpsAgent } as any ),
+// });
+
+//   return response.data;
+// }
+ async getAccountInfo(dto: AccountInfoDto) {
+    console.log('🔍 AUTH GUARD TEMPORARILY DISABLED FOR TESTING');
+    console.log('Calling service.getAccountInfo()...');
+    
+    try {
+      const response = await axios({
+        method: 'post',
+        url: this.accountInfoUrl,
+        data: {
+          QueryCustAcc_REQ: {
+            CUST_AC_NO: dto.account_number,
+          },
+        },
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // bypass TS
+        ...( { httpsAgent: httpsAgent } as any ),
+      });
+
+      console.log('Service call completed successfully');
+      const rawData = response.data;
+      
+      // Extract mobile-friendly account info
+      const mobileResponse = this.formatAccountInfoForMobile(rawData);
+      
+      console.log('Controller returning account info:', JSON.stringify(mobileResponse, null, 2));
+      return mobileResponse;
+      
     } catch (error: any) {
+      console.error('Account info fetch failed:', error);
       throw new HttpException(
-        error.response?.data || 'Failed to fetch account info',
+        error.response?.data || 'Failed to fetch account information',
         HttpStatus.BAD_REQUEST,
       );
     }
@@ -251,5 +311,159 @@ async getRate() {
     );
   }
 }
+// =========================================
+  // HELPER: FORMAT ACCOUNT INFO FOR MOBILE
+  // =========================================
+  private formatAccountInfoForMobile(fcubsResponse: any) {
+    try {
+      console.log('🔄 Transforming FCUBS response for mobile...');
+      
+      const fcubsData = fcubsResponse?.QUERYCUSTACC_IOFS_RES;
+      
+      if (!fcubsData || fcubsData.FCUBS_HEADER?.MSGSTAT !== 'SUCCESS') {
+        console.log('❌ FCUBS call failed or returned error');
+        return {
+          success: false,
+          error: 'Account not found',
+          message: 'Unable to retrieve account information',
+        };
+      }
+
+      const custAccFull = fcubsData.FCUBS_BODY?.['Cust-Account-Full'];
+      const amountDates = custAccFull?.['Amount-Dates'];
+      
+      if (!custAccFull) {
+        console.log('❌ Missing Cust-Account-Full data');
+        return {
+          success: false,
+          error: 'Invalid account data',
+          message: 'Account information is incomplete',
+        };
+      }
+
+      console.log('✅ Extracting account details...');
+      
+      // Extract and transform account information
+      const accountInfo = {
+        accountNumber: custAccFull.ACC || '',
+        accountHolderName: custAccFull.CUSTNAME || custAccFull.ADESC || 'Unknown',
+        customerNumber: custAccFull.CUSTNO || '',
+        branchCode: custAccFull.BRN || '',
+        currency: custAccFull.CCY || 'ETB',
+        accountType: custAccFull.ACCLS || '',
+        accountTypeDescription: custAccFull.ACCLSTYP || '',
+        accountStatus: custAccFull.ACCSTAT || '',
+        accountStatusDescription: this.getStatusDescription(custAccFull.ACCSTAT),
+        alternateAccount: custAccFull.ALTACC || null,
+        openDate: custAccFull.ACCOPENDT || null,
+        frozen: custAccFull.FROZEN === 'Y',
+        
+        // Address information
+        address: {
+          line1: custAccFull.ADDRESS_1 || null,
+          line2: custAccFull.ADDRESS_2 || null,
+          line3: custAccFull.ADDRESS_3 || null,
+          line4: custAccFull.ADDRESS_4 ? custAccFull.ADDRESS_4.toString() : null,
+        },
+        
+        // Balance information
+        balance: {
+          current: this.parseAmount(amountDates?.ACY_CURR_BALANCE),
+          available: this.parseAmount(amountDates?.ACY_AVL_BAL),
+          currency: custAccFull.CCY || 'ETB',
+          blocked: this.parseAmount(amountDates?.ACY_BLOCKED_AMOUNT),
+          lastCreditDate: amountDates?.DATE_LAST_CR || null,
+          lastDebitDate: amountDates?.DATE_LAST_DR || null,
+          formatted: {
+            current: this.formatAmount(this.parseAmount(amountDates?.ACY_CURR_BALANCE), custAccFull.CCY),
+            available: this.formatAmount(this.parseAmount(amountDates?.ACY_AVL_BAL), custAccFull.CCY),
+          },
+        },
+        
+        // Account features
+        features: {
+          atmEnabled: custAccFull.ATM === 'Y',
+          passbookEnabled: custAccFull.PASSBOOK === 'Y',
+          chequebookEnabled: custAccFull.CHQBOOK === 'Y',
+          directBankingEnabled: custAccFull.DIRECT_BANKING === 'Y',
+        },
+        
+        // Account restrictions
+        restrictions: {
+          noDebit: custAccFull.ACSTATNODR === 'Y',
+          noCredit: custAccFull.ACSTATNOCR === 'Y',
+          noStopPayment: custAccFull.ACSTATSTPAY === 'Y',
+        },
+        
+        // Transfer capabilities (mobile app needs this)
+        canSendMoney: this.canAccountSendMoney(custAccFull),
+        canReceiveMoney: this.canAccountReceiveMoney(custAccFull),
+      };
+
+      console.log('✅ Mobile format created successfully');
+      console.log(`📱 Account: ${accountInfo.accountNumber} - ${accountInfo.accountHolderName}`);
+      console.log(`💰 Available Balance: ${accountInfo.balance.formatted.available}`);
+      
+      return {
+        success: true,
+        account: accountInfo,
+        message: 'Account information retrieved successfully',
+      };
+
+    } catch (error) {
+      console.error('❌ Error transforming account data:', error);
+      return {
+        success: false,
+        error: 'Data transformation failed',
+        message: 'Unable to process account information',
+      };
+    }
+  }
+
+  // Helper methods for account transformation
+  private getStatusDescription(status: string): string {
+    const statusMap: { [key: string]: string } = {
+      'NORM': 'Normal',
+      'DORM': 'Dormant',
+      'CLOS': 'Closed',
+      'FREZ': 'Frozen',
+    };
+    return statusMap[status] || status || 'Unknown';
+  }
+
+  private parseAmount(value: any): number {
+    if (value === null || value === undefined) return 0;
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') {
+      const parsed = parseFloat(value);
+      return isNaN(parsed) ? 0 : parsed;
+    }
+    return 0;
+  }
+
+  private formatAmount(amount: number, currency: string): string {
+    try {
+      return new Intl.NumberFormat('en-ET', {
+        style: 'currency',
+        currency: currency || 'ETB',
+        minimumFractionDigits: 2,
+      }).format(amount);
+    } catch (error) {
+      // Fallback if currency formatting fails
+      return `${amount.toFixed(2)} ${currency || 'ETB'}`;
+    }
+  }
+
+  private canAccountSendMoney(account: any): boolean {
+    return account.ACCSTAT === 'NORM' && 
+           account.FROZEN !== 'Y' && 
+           account.ACSTATNODR !== 'Y';
+  }
+
+  private canAccountReceiveMoney(account: any): boolean {
+    return account.ACCSTAT === 'NORM' && 
+           account.FROZEN !== 'Y' && 
+           account.ACSTATNOCR !== 'Y';
+  }
   
 }

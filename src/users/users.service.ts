@@ -159,6 +159,7 @@ console.log("createUserDto",createUserDto)
 }
 
   async findOne(id: number): Promise<any> {
+    console.log("id.....................",id)
   const user = await this.usersRepository.findOne({
     where: { id },
     relations: [
@@ -290,6 +291,14 @@ const token = await this.jwtService.signAsync(payload);
     sameSite: false,
     maxAge: 30 * 24 * 60 * 60 * 1000,
   });
+//   res.cookie('access_token', token, {
+//   httpOnly: true,
+//   secure: true,   
+//   sameSite: 'none',  
+//   maxAge: 30 * 24 * 60 * 60 * 1000,
+//   domain: '10.195.49.21' // Your backend IP
+// })
+
   // Flatten permissions
   const permissions = [
     ...new Set(
@@ -541,6 +550,16 @@ async resetPin(dto: ResetPinDto) {
   await this.usersRepository.save(user);
 
   return { message: 'PIN reset successful' };
+}
+
+async checkEmail(email: string) {
+  const user = await this.usersRepository.findOne({
+    where: { email },
+  });
+
+  return {
+    exists: !!user,
+  };
 }
 }
 

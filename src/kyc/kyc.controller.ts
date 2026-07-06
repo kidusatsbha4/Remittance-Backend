@@ -20,7 +20,7 @@ import { multerConfig } from '../common/config/multer.config';
 @UseInterceptors(ClassSerializerInterceptor) // Enables the @Exclude() decorator
 
 @Controller('kyc')
-//  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard)
 export class KycController {
   constructor(private readonly kycService: KycService) {}
 
@@ -67,8 +67,8 @@ create(
   @UploadedFiles() files,
   @Req() req, // ✅ UPDATED
 ) {
-  // const userId = req.user.sub; // ✅ GET FROM JWT
- const userId = 5; // ✅ GET FROM JWT
+   const userId = req.user.sub; // ✅ GET FROM JWT
+ //const userId = 5; // ✅ GET FROM JWT
   return this.kycService.create(
     { ...body, user_id: userId }, // ✅ inject user_id
     files,

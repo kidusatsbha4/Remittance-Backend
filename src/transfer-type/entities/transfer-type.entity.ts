@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import {
+  Entity, 
+  PrimaryGeneratedColumn, 
+  Column,
+  // CreateDateColumn,
+  // UpdateDateColumn,
+ } from 'typeorm';
 
 export enum TransferTypeEnum {
   AUTOMATIC = 'AUTOMATIC',
@@ -18,4 +24,10 @@ export class TransferType {
 
   @Column({ default: true })
   status: boolean; // true = active, false = inactive
+
+  //  @CreateDateColumn()
+  // created_at: Date;
+
+  // @UpdateDateColumn()
+  // updated_at: Date;
 }

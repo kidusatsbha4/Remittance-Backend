@@ -46,6 +46,111 @@ export class PaymentsController {
       body.user || null,
     );
   }
+@Get('card-form')
+getCardForm(@Res() res: Response) {
+  res.send(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Wegagen Secure Payment</title>
+    <style>
+        :root {
+            --wegagen-blue: #003366;
+            --wegagen-orange: #FF6B35;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f4f7f9;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h2 { color: var(--wegagen-blue); text-align: center; margin-top: 0; }
+        .field { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; }
+        #number-container, #securityCode-container, input {
+            height: 52px;
+            width: 100%;
+            border: 1px solid #d1d9e0;
+            border-radius: 8px;
+            padding: 0 15px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 16px;
+            background-color: var(--wegagen-orange);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        #status { margin-top: 20px; text-align: center; font-size: 14px; color: #555; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Secure Payment</h2>
+        <div class="field"><label>Card Number</label><div id="number-container"></div></div>
+        <div class="field"><label>Security Code</label><div id="securityCode-container"></div></div>
+        <div class="field"><label>Exp. Month</label><input id="month" type="tel" inputmode="numeric" placeholder="MM" maxlength="2" /></div>
+        <div class="field"><label>Exp. Year</label><input id="year" type="tel" inputmode="numeric" placeholder="YYYY" maxlength="4" /></div>
+        <button onclick="generateToken()">Pay Now</button>
+        <div id="status"></div>
+    </div>
+
+    <script src="https://flex.cybersource.com/cybersource/assets/microform/0.11/flex-microform.min.js"></script>
+    <script>
+        let microform;
+        (async function(){
+            try {
+                const response = await fetch('/payments/generate-capture-context', { method: 'POST' });
+                const jwt = await response.text();
+                const flex = new Flex(jwt);
+                microform = flex.microform('card');
+                microform.createField('number').load('#number-container');
+                microform.createField('securityCode').load('#securityCode-container');
+            } catch(e) { document.getElementById('status').innerText = 'System Error'; }
+        })();
+
+        async function generateToken(){
+            document.getElementById('status').innerText = 'Processing...';
+            microform.createToken({
+                expirationMonth: document.getElementById('month').value,
+                expirationYear: document.getElementById('year').value
+            }, async (err, token) => {
+            console.log(token)
+                if(err) return alert(err.message);
+                // Send token to Flutter
+    window.TokenChannel.postMessage(token);
+            });
+        }
+    </script>
+</body>
+</html>
+  `);
+}
+
+  @Post('store-token')
+  async storeToken(@Body() body: any) {
+    const { token } = body;
+    // Here you can save the token to your session or DB
+    console.log('Token received for processing:', token);
+    return { status: 'success', message: 'Token stored' };
+  }
+
+
 // @Get('card-form')
 // getCardForm(@Res() res: Response) {
 //   res.send(`
@@ -326,83 +431,92 @@ export class PaymentsController {
  // =================================================
   // 1. CREATE SESSION
   // =================================================
+ 
   @Post('session')
   createSession(@Body() body: any) {
     return this.paymentsService.createSession(body);
   }
-
+@Get('session')
+  createSessionGet() {
+    // Create session with default values for mobile app
+    return this.paymentsService.createSession({
+      amount: 100,
+      currency: 'USD',
+      customerId: 'mobile_user_' + Date.now()
+    });
+  }
   // =================================================
   // 2. MICROFORM PAGE (Nginx/BROWSER ONLY)
   // =================================================
-  @Get('card-form')
-  getCardForm(@Query('sessionId') sessionId: string, @Res() res: Response) {
-    const html = `
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Secure Checkout</title>
-</head>
+//   @Get('card-form')
+//   getCardForm(@Query('sessionId') sessionId: string, @Res() res: Response) {
+//     const html = `
+// <!DOCTYPE html>
+// <html>
+// <head>
+//   <title>Secure Checkout</title>
+// </head>
 
-<body>
-  <h2>Card Payment</h2>
+// <body>
+//   <h2>Card Payment</h2>
 
-  <div id="number-container"></div>
-  <div id="securityCode-container"></div>
+//   <div id="number-container"></div>
+//   <div id="securityCode-container"></div>
 
-  <input id="month" placeholder="MM"/>
-  <input id="year" placeholder="YYYY"/>
+//   <input id="month" placeholder="MM"/>
+//   <input id="year" placeholder="YYYY"/>
 
-  <button onclick="pay()">Pay</button>
+//   <button onclick="pay()">Pay</button>
 
-<script>
-let microform;
+// <script>
+// let microform;
 
-(async () => {
-  const sessionId = "${sessionId}";
+// (async () => {
+//   const sessionId = "${sessionId}";
 
-  const session = await fetch("/payments/session-data?sessionId=" + sessionId)
-    .then(r => r.json());
+//   const session = await fetch("/payments/session-data?sessionId=" + sessionId)
+//     .then(r => r.json());
 
-  const script = document.createElement("script");
-  script.src = JSON.parse(atob(session.captureContext.split('.')[1])).ctx[0].data.clientLibrary;
+//   const script = document.createElement("script");
+//   script.src = JSON.parse(atob(session.captureContext.split('.')[1])).ctx[0].data.clientLibrary;
 
-  script.onload = () => {
-    const flex = new Flex(session.captureContext);
-    microform = flex.microform('card');
+//   script.onload = () => {
+//     const flex = new Flex(session.captureContext);
+//     microform = flex.microform('card');
 
-    microform.createField('number').load('#number-container');
-    microform.createField('securityCode').load('#securityCode-container');
-  };
+//     microform.createField('number').load('#number-container');
+//     microform.createField('securityCode').load('#securityCode-container');
+//   };
 
-  document.head.appendChild(script);
-})();
+//   document.head.appendChild(script);
+// })();
 
-async function pay() {
-  microform.createToken({
-    expirationMonth: document.getElementById('month').value,
-    expirationYear: document.getElementById('year').value,
-  }, async (err, token) => {
-    await fetch('/payments/process-token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sessionId: "${sessionId}",
-        transientToken: token
-      })
-    });
+// async function pay() {
+//   microform.createToken({
+//     expirationMonth: document.getElementById('month').value,
+//     expirationYear: document.getElementById('year').value,
+//   }, async (err, token) => {
+//     await fetch('/payments/process-token', {
+//       method: 'POST',
+//       headers: { 'Content-Type': 'application/json' },
+//       body: JSON.stringify({
+//         sessionId: "${sessionId}",
+//         transientToken: token
+//       })
+//     });
 
-   window.location.href = "/payment-success?status=success&sessionId=" + "${sessionId}";
-  });
-}
-</script>
+//    window.location.href = "/payment-success?status=success&sessionId=" + "${sessionId}";
+//   });
+// }
+// </script>
 
-</body>
-</html>
-    `;
+// </body>
+// </html>
+//     `;
 
-    res.setHeader('Content-Type', 'text/html');
-    return res.send(html);
-  }
+//     res.setHeader('Content-Type', 'text/html');
+//     return res.send(html);
+//   }
 
   // OPTIONAL: session fetch endpoint
   @Get('session-data')
@@ -460,6 +574,7 @@ async challengeReturn(
 //     ttl: 60 * 1000,
 //   },
 // })
+  // @UseGuards(AuthGuard)
   @Post('pay')
 @HttpCode(HttpStatus.OK)
 async pay(@Body() body: any, @Request() req) {

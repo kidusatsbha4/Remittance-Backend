@@ -16,9 +16,11 @@ export class TransactionsService {
 
   // ✅ CREATE TRANSACTION
  async create(data: any, user: any) {
+  console.log("user",user)
   const transaction = this.repo.create({
     ...data,
-    sender_id: 35, // ✅ still works
+     sender_id: user.sub, // ✅ still works
+    // sender_id: 1, 
     transaction_ref: 'TX-' + Date.now(),
   });
 console.log("transaction",transaction)
@@ -96,8 +98,7 @@ console.log("transaction",transaction)
   // ✅ USER TRANSACTIONS
   async myTransactions(user: any) {
     return this.repo.find({
-      // where: { sender_id: user.sub },
-      where: { sender_id: 1 },
+       where: { sender_id: user.sub },
       order: { created_at: 'DESC' },
     });
   }

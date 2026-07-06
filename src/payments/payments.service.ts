@@ -132,7 +132,7 @@ export class PaymentsService {
       request.clientVersion = 'v2';
       request.allowedPaymentTypes = ['CARD'];
       request.allowedCardNetworks = ['VISA', 'MASTERCARD', 'AMEX'];
-      request.targetOrigins = [  'http://localhost:3000','https://yippee-unmolded-porridge.ngrok-free.dev'];
+      request.targetOrigins = [  'https://cybersource.wegagenbanksc.com.et:3001','http://localhost:3000'];
 
       instance.generateCaptureContext(request, (error, data) => {
         if (error) {
@@ -140,7 +140,7 @@ export class PaymentsService {
           reject(error.response ? error.response.text : error.message);
 
         } else {
-          console.log("data",data)
+          // console.log("data",data)
           resolve(data);
         }
       });
@@ -278,6 +278,9 @@ export class PaymentsService {
         customer: {
           id: customerId,
         },
+  //         paymentInstrument: {
+  //   id: paymentInstrumentId
+  // },
       };
 
       riskInstance.payerAuthSetup(riskRequest, (error, data) => {
@@ -292,74 +295,7 @@ export class PaymentsService {
       });
     });
   }
-  // private async callRiskSetup(customerId: string) {
-  //   const host = 'apitest.cybersource.com';
-  //   const merchantId = this.configService.get('MERCHANT_ID');
-  //   const keyId = this.configService.get('REST_KEY_ID');
-  //   const secretKey = this.configService.get('REST_SHARED_SECRET');
-
-  //   const resource = '/risk/v1/authentication-setups';
-  //   const url = `https://${host}${resource}`;
-  //   const method = 'post';
-  //   const date = new Date().toUTCString();
-
-  //   const payload = {
-  //     clientReferenceInformation: {
-  //       code: 'TC2-' + Date.now(),
-  //     },
-  //     paymentInformation: {
-  //       customer: {
-  //         id: customerId,
-  //       },
-  //     },
-  //   };
-
-  //   const body = JSON.stringify(payload);
-
-  //   const digest = crypto
-  //     .createHash('sha256')
-  //     .update(body)
-  //     .digest('base64');
-
-  //   const digestHeader = `SHA-256=${digest}`;
-
-  //   const signatureString =
-  //     `host: ${host}\n` +
-  //     `v-c-date: ${date}\n` +
-  //     `request-target: ${method} ${resource}\n` +
-  //     `digest: ${digestHeader}\n` +
-  //     `v-c-merchant-id: ${merchantId}`;
-
-  //   const signature = crypto
-  //     .createHmac('sha256', Buffer.from(secretKey, 'base64'))
-  //     .update(signatureString)
-  //     .digest('base64');
-
-  //   const signatureHeader =
-  //     `keyid="${keyId}", algorithm="HmacSHA256", ` +
-  //     `headers="host v-c-date request-target digest v-c-merchant-id", ` +
-  //     `signature="${signature}"`;
-
-  //   try {
-  //     const res = await axios.post(url, body, {
-  //       headers: {
-  //         host,
-  //         'v-c-date': date,
-  //         digest: digestHeader,
-  //         'v-c-merchant-id': merchantId,
-  //         signature: signatureHeader,
-  //         'content-type': 'application/json',
-  //         accept: 'application/json',
-  //       },
-  //     });
-
-  //     console.log('🔥 RISK RESPONSE:', res.data);
-  //     return res.data;
-  //   } catch (err: any) {
-  //     console.log('❌ Risk API error:', err.response?.data || err.message);
-  //     throw err;
-  //   }
-  // }
+ 
 async checkEnrollment(body: any) {
   return new Promise(async (resolve, reject) => {
     try {
@@ -375,7 +311,7 @@ async checkEnrollment(body: any) {
         isAft = false,
       } = body;
 console.log("referenceId",referenceId)
-console.log("referenceId",customer_id)
+console.log("costomerId",customer_id)
       const apiClient = new cybersourceRestApi.ApiClient();
 
       const payerAuthInstance =
@@ -423,6 +359,7 @@ console.log("referenceId",customer_id)
         returnUrl: this.configService.get('RETURN_URL'),
 
         challengeCode: '05',
+         challengePreference: "01"  ,
 
         transactionMode: 'BROWSER',
 
@@ -642,124 +579,7 @@ async authenticationResults(body: any) {
         exchange_rate,
       } = body;
 
-// const url = 'https://apitest.cybersource.com/pts/v2/payments';
 
-//       const merchantId = this.configService.get('MERCHANT_ID');
-//       const keyId = this.configService.get('REST_KEY_ID');
-//       const secretKey = this.configService.get('REST_SHARED_SECRET');
-
-//       const host = 'apitest.cybersource.com';
-//       const resource = '/pts/v2/payments';
-//       const date = new Date().toUTCString();
-
-//       // -----------------------------
-//       // 1. BUILD REQUEST BODY
-//       // -----------------------------
-//       const tokenPayload = {
-//         processingInformation: {
-//           capture: false,
-//           actionList: ['TOKEN_CREATE'],
-//           actionTokenTypes: [
-//             'customer',
-//             'paymentInstrument',
-//             'instrumentIdentifier',
-//           ],
-//         },
-
-//         tokenInformation: {
-//           transientTokenJwt: transientToken,
-//         },
-
-//         clientReferenceInformation: {
-//           code: 'TOKEN_' + Date.now(),
-//         },
-
-//         orderInformation: {
-//           amountDetails: {
-//             totalAmount: '0',
-//             currency: 'USD',
-//           },
-//           billTo: {
-//             firstName: firstName || 'John',
-//             lastName: lastName || 'Doe',
-//             address1: address1 || '1 Market St',
-//             locality: locality || 'San Francisco',
-//             administrativeArea: administrativeArea || 'CA',
-//             postalCode: postalCode || '94105',
-//             country: country || 'US',
-//             email: email || 'test@cybs.com',
-//             phoneNumber: phoneNumber || '4158880000',
-//           },
-//         },
-//       };
-
-//       // Ensure exact string verification
-//       const rawBody = JSON.stringify(tokenPayload);
-
-//       // -----------------------------
-//       // 2. DIGEST
-//       // -----------------------------
-//       const digest = crypto
-//         .createHash('sha256')
-//         .update(rawBody, 'utf8')
-//         .digest('base64');
-
-//       const digestHeader = `SHA-256=${digest}`;
-
-//       // -----------------------------
-//       // 3. SIGNATURE STRING 
-//       // -----------------------------
-//       const signatureString =
-//         `host: ${host}\n` +
-//         `v-c-date: ${date}\n` +
-//         `request-target: post ${resource}\n` +
-//         `digest: ${digestHeader}\n` +
-//         `v-c-merchant-id: ${merchantId}`;
-
-//       // -----------------------------
-//       // 4. SIGNATURE HEADER
-//       // -----------------------------
-//       const signature = crypto
-//         .createHmac('sha256', Buffer.from(secretKey, 'base64'))
-//         .update(signatureString, 'utf8')
-//         .digest('base64');
-
-//       const signatureHeader =
-//         `keyid="${keyId}", ` +
-//         `algorithm="HmacSHA256", ` +
-//         `headers="host v-c-date request-target digest v-c-merchant-id", ` +
-//         `signature="${signature}"`;
-
-//       // -----------------------------
-//       // 5. CALL CYBERSOURCE TOKEN GEN
-//       // -----------------------------
-//       let response;
-//       try {
-//         response = await axios({
-//           method: 'post', // explicitly state lowercase for verification alignment
-//           url: url,
-//           data: rawBody,
-//           headers: {
-//             'host': host, // Keep lowercase key formatting for security signatures
-//             'v-c-date': date,
-//             'digest': digestHeader,
-//             'v-c-merchant-id': merchantId,
-//             'signature': signatureHeader,
-//             'content-type': 'application/json',
-//             'accept': 'application/json',
-//           },
-//         });
-        
-//         console.log('🔥 TOKEN RESPONSE:', response.data);
-//       } catch (axiosErr: any) {
-//         console.error('❌ Axios Token Generation failed:', axiosErr.response?.data || axiosErr.message);
-//         return reject({
-//           status: 'failed',
-//           message: `Token generation step failed: ${axiosErr.message}`,
-//           errorDetails: axiosErr.response?.data || null
-//         });
-//       }
-// =============================================================
         // =============================================================
         // STEP 1: GENERATE TOKEN SAFELY USING CYBERSOURCE NATIVE SDK
         // =============================================================
@@ -1040,7 +860,284 @@ try {
     });
   }
 
+//   async pay(body: any, user: any) {
+//   return new Promise((resolve, reject) => {
+//     const {
+//       transientToken,
+//       payload,
+//       amount,
+//       customer_id,
+//       exchange_rate
+//     } = body;
+// console.log("customer_id............",customer_id)
+//     const apiClient = new cybersourceRestApi.ApiClient();
+
+//     const paymentsInstance =
+//       new cybersourceRestApi.PaymentsApi(
+//         this.configObjP,
+//         apiClient,
+//       );
+
+//     const request =
+//       new cybersourceRestApi.CreatePaymentRequest();
+
+//     // =================================================
+//     // CLIENT REFERENCE
+//     // =================================================
+//     request.clientReferenceInformation = {
+//       code: 'ORDER_' + Date.now(),
+//     };
+
+//     // =================================================
+//     // TOKEN
+//     // =================================================
+//     request.tokenInformation = {
+//       transientTokenJwt: transientToken,
+//     };
+
+//     // =================================================
+//     // BILLING
+//     // =================================================
+//     request.orderInformation = {
+//       amountDetails: {
+//         totalAmount: String(amount),
+//         currency: 'USD',
+//       },
+
+//       billTo: {
+//         firstName: 'John',
+//         lastName: 'Doe',
+//         address1: '1 Market St',
+//         locality: 'San Francisco',
+//         administrativeArea: 'CA',
+//         postalCode: '94105',
+//         country: 'US',
+//         email: 'test@cybs.com',
+//         phoneNumber: '4158880000',
+//       },
+//     };
+
+//     // =================================================
+//     // CUSTOMER
+//     // =================================================
+//     request.paymentInformation = {
+//       customer: {
+//         id: customer_id,
+//       },
+//     };
+
+//     // =================================================
+//     // PROCESS 3DS DATA
+//     // =================================================
+//     const authInfo =
+//       payload?.consumerAuthenticationInformation || {};
+
+//     // =================================================
+//     // DETECT CARD TYPE + SET 3DS DATA
+//     // =================================================
+//     let commerceIndicator = 'internet';
+
+//     request.consumerAuthenticationInformation = {
+//       authenticationTransactionId:
+//         authInfo.authenticationTransactionId,
+//     };
+
+//     // VISA FLOW
+//     if (authInfo.cavv) {
+//       request.consumerAuthenticationInformation = {
+//         cavv: authInfo.cavv,
+//         xid: authInfo.xid,
+//         eciRaw: authInfo.eciRaw,
+//         authenticationTransactionId:
+//           authInfo.authenticationTransactionId,
+//       };
+
+//       commerceIndicator = 'vbv';
+//     }
+
+//     // MASTERCARD FLOW
+//     else if (authInfo.ucafAuthenticationData) {
+//       request.consumerAuthenticationInformation = {
+//         ucafAuthenticationData:
+//           authInfo.ucafAuthenticationData,
+
+//         ucafCollectionIndicator:
+//           authInfo.ucafCollectionIndicator,
+
+//         eciRaw: authInfo.eciRaw,
+
+//         authenticationTransactionId:
+//           authInfo.authenticationTransactionId,
+//       };
+
+//       commerceIndicator = 'spa';
+//     }
+
+//     // =================================================
+//     // PROCESSING (DYNAMIC commerceIndicator)
+//     // =================================================
+//     request.processingInformation = {
+//       capture: true,
+//       commerceIndicator,
+//     };
+
+//     // =================================================
+//     // LOG REQUEST
+//     // =================================================
+//     console.log(
+//       '🔥 FINAL PAYMENT REQUEST:',
+//       JSON.stringify(request, null, 2),
+//     );
+
+//     // =================================================
+//     // CALL CYBERSOURCE
+//     // =================================================
+//     paymentsInstance.createPayment(
+//       request,
+//       async (error, data) => {
+//         if (error) {
+//           console.log(
+//             '❌ PAYMENT ERROR:',
+//             error.response
+//               ? error.response.text
+//               : error,
+//           );
+
+//           return reject(
+//             error.response
+//               ? JSON.parse(error.response.text)
+//               : error,
+//           );
+//         }
+// console.log("payment data",data)
+//         try {
+//           // 🔥 CHECK PAYMENT STATUS
+//           if (data.status !== 'AUTHORIZED') {
+//             return reject({
+//               status: 'failed',
+//               message: 'Card not authorized',
+//               cybersource: data,
+//             });
+//           }
+//           const transferType = await this.getActiveTransferType();
+//           if (transferType === TransferTypeEnum.MANUAL) {
+//             const manual = await this.manualService.create(
+//               {
+//                 toAccount,
+//                 toAccountHolder,
+//                 amount,
+//                 currency: 'ETB',
+//                 toCurrency,
+//                 eCurrency,
+//                 remark,
+//                 bonus,
+//                 exchange_rate: exchange_rate || null,
+//                 channel: 'card',
+//                 external_ref: data.id, // ✅ from CyberSource
+
+//               },
+//               user,
+//             );
+//             resolve(manual);
+//           }
+// //console.log("data", data)
+//           // =========================================
+//           // 🔥 PREPARE INTERNAL TRANSFER DTO
+//           // =========================================
+//           const transferDto: InternalTransferDto = {
+//             fromAccount,
+//             fromAccountHolder,
+//             toAccount,
+//             toAccountHolder,
+//             currency,
+//             toCurrency,
+//             amount,
+//             remark,
+
+//           };
+
+//           //console.log("transferDto", transferDto)
+//           // 🔥 CALL INTERNAL TRANSFER
+//           const transferResponse =
+//             await this.internalTransferService.transfer(transferDto);
+
+//           // =========================================
+//           // 🔥 CHECK TRANSFER RESPONSE
+//           // =========================================
+//          // console.log("transferResponse", transferResponse)
+//           //console.log("transferResponse.data.status", transferResponse.status)
+//           if (!transferResponse.status) {
+
+//             const manual = await this.manualService.create(
+//               {
+//                 toAccount,
+//                 toAccountHolder,
+//                 amount,
+//                 currency: 'ETB',
+//                 toCurrency,
+//                 eCurrency,
+//                 remark,
+//                 bonus,
+//                 exchange_rate: exchange_rate || null,
+//                 channel: 'card',
+//                 external_ref: data.id, // ✅ from CyberSource
+
+//               },
+//               user,
+//             );
+//             resolve(manual);
+
+//             return reject({
+//               status: 'failed',
+//               message: transferResponse?.data?.statusDesc || 'Transfer failed from CBS',
+//             });
+//           }
+//           // resolve(transferResponse);
+
+//           const txData = transferResponse.data;
+
+//           // =========================================
+//           // 🔥 SAVE TRANSACTION
+//           // =========================================
+//           const transaction = await this.transactionsService.create(
+//             {
+//               beneficiary_acc: toAccount,
+//               amount,
+//               currency: 'ETB',
+//               exchange_rate: exchange_rate || null,
+//               status: 'PAID', // ✅ UPDATED
+//               channel: 'card',
+//               external_ref: data.id, // ✅ from CyberSource
+//               failure_reason: null,
+//               completed_at: new Date(),
+//             },
+//             user,
+//           );
+
+//           //         return resolve({
+
+//           //     transferResponse,
+//           //     transaction,
+
+//           // });
+//           resolve(transferResponse);
+
+//           // =========================================
+//           // 🔥 FINAL RESPONSE TO FRONTEND
+//           // =========================================
+//           console.log("response", transaction)
+//         } catch (err: any) {
+//           return reject({
+//             status: 'failed',
+//             message: err.message || 'Processing failed',
+//           });
+//         }
+//       },
+//     );
+//   });
+// }
   async pay(body: any, user: any) {
+    console.log("body",body)
   return new Promise((resolve, reject) => {
     const {
       transientToken,
@@ -1048,8 +1145,12 @@ try {
       amount,
       customer_id,
       exchange_rate
+      
     } = body;
-console.log("customer_id............",customer_id)
+    const paymentAmount = String(amount || '10.00');
+    const customerId = customer_id || 'guest_' + Date.now();
+
+console.log("customer_id............", customerId)
     const apiClient = new cybersourceRestApi.ApiClient();
 
     const paymentsInstance =
@@ -1069,7 +1170,7 @@ console.log("customer_id............",customer_id)
     };
 
     // =================================================
-    // TOKEN
+    // PAYMENT METHOD
     // =================================================
     request.tokenInformation = {
       transientTokenJwt: transientToken,
@@ -1080,10 +1181,9 @@ console.log("customer_id............",customer_id)
     // =================================================
     request.orderInformation = {
       amountDetails: {
-        totalAmount: String(amount),
+        totalAmount: paymentAmount,
         currency: 'USD',
       },
-
       billTo: {
         firstName: 'John',
         lastName: 'Doe',
@@ -1098,15 +1198,6 @@ console.log("customer_id............",customer_id)
     };
 
     // =================================================
-    // CUSTOMER
-    // =================================================
-    request.paymentInformation = {
-      customer: {
-        id: customer_id,
-      },
-    };
-
-    // =================================================
     // PROCESS 3DS DATA
     // =================================================
     const authInfo =
@@ -1117,12 +1208,6 @@ console.log("customer_id............",customer_id)
     // =================================================
     let commerceIndicator = 'internet';
 
-    request.consumerAuthenticationInformation = {
-      authenticationTransactionId:
-        authInfo.authenticationTransactionId,
-    };
-
-    // VISA FLOW
     if (authInfo.cavv) {
       request.consumerAuthenticationInformation = {
         cavv: authInfo.cavv,
@@ -1153,12 +1238,28 @@ console.log("customer_id............",customer_id)
       commerceIndicator = 'spa';
     }
 
+    if (
+      authInfo.authenticationTransactionId ||
+      authInfo.cavv ||
+      authInfo.ucafAuthenticationData
+    ) {
+      request.consumerAuthenticationInformation =
+        request.consumerAuthenticationInformation || {
+          authenticationTransactionId:
+            authInfo.authenticationTransactionId,
+        };
+    }
+
     // =================================================
     // PROCESSING (DYNAMIC commerceIndicator)
     // =================================================
     request.processingInformation = {
       capture: true,
       commerceIndicator,
+  //    actionList: ["AFT"],
+  // authorizationOptions: {
+  //   aftIndicator: true,
+  // },
     };
 
     // =================================================
@@ -1194,12 +1295,22 @@ console.log("payment data",data)
           // 🔥 CHECK PAYMENT STATUS
           if (data.status !== 'AUTHORIZED') {
             return reject({
-              status: 'failed',
-              message: 'Card not authorized',
+              status: data.status,
+              message: data,
               cybersource: data,
             });
           }
-          const transferType = await this.getActiveTransferType();
+
+          let transferType: TransferTypeEnum | null = null;
+          try {
+            transferType = await this.getActiveTransferType();
+          } catch (dbErr: any) {
+            console.warn(
+              'Could not read transfer type, skipping downstream transfer flow:',
+              dbErr.message || dbErr,
+            );
+          }
+
           if (transferType === TransferTypeEnum.MANUAL) {
             const manual = await this.manualService.create(
               {
@@ -1218,9 +1329,17 @@ console.log("payment data",data)
               },
               user,
             );
-            resolve(manual);
+            return resolve(manual);
           }
-//console.log("data", data)
+
+          if (!transferType) {
+            return resolve({
+              status: 'success',
+              message: 'Payment authorized. Downstream transfer flow skipped because transfer type is not configured.',
+              payment: data,
+            });
+          }
+
           // =========================================
           // 🔥 PREPARE INTERNAL TRANSFER DTO
           // =========================================
@@ -1316,7 +1435,6 @@ console.log("payment data",data)
     );
   });
 }
-
 async search(payload: any) {
   const merchantId = this.configService.get('MERCHANT_ID');
   const keyId = this.configService.get('REST_KEY_ID');

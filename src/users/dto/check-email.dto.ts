@@ -1,0 +1,7 @@
+// src/users/dto/check-email.dto.ts
+import { IsEmail } from 'class-validator';
+
+export class CheckEmailDto {
+  @IsEmail()
+  email: string;
+}
