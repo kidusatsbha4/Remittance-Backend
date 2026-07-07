@@ -296,22 +296,191 @@ export class PaymentsService {
     });
   }
  
+// async checkEnrollment(body: any) {
+//   return new Promise(async (resolve, reject) => {
+//     try {
+//       const {
+//         referenceId,
+//       customer_id,
+//         amount,
+//         currency,
+
+//         billTo,
+//         browserInfo,
+
+//         isAft = false,
+//       } = body;
+// console.log("referenceId",referenceId)
+// console.log("costomerId",customer_id)
+//       const apiClient = new cybersourceRestApi.ApiClient();
+
+//       const payerAuthInstance =
+//         new cybersourceRestApi.PayerAuthenticationApi(
+//           this.configObj,
+//           apiClient,
+//         );
+
+//       const request =
+//         new cybersourceRestApi.CheckPayerAuthEnrollmentRequest();
+
+//       // ==============================
+//       // Client Reference
+//       // ==============================
+//       request.clientReferenceInformation = {
+//         code:'AUTH_' + Date.now(),
+//       };
+
+//       // ==============================
+//       // Card Information
+//       // ==============================
+//       request.paymentInformation = {
+//         customer: {
+//       id: customer_id,
+      
+//     },
+//       };
+
+//       // ==============================
+//       // Order Information
+//       // ==============================
+//       request.orderInformation = {
+//         amountDetails: {
+//           totalAmount: String(amount),
+//           currency: currency || 'USD',
+//         },
+//         billTo: billTo,
+//       };
+
+//       // ==============================
+//       // Consumer Authentication
+//       // ==============================
+//       request.consumerAuthenticationInformation = {
+//         referenceId,
+//         returnUrl: this.configService.get('RETURN_URL'),
+
+//         challengeCode: '05',
+//          challengePreference: "01"  ,
+
+//         transactionMode: 'BROWSER',
+//         deviceChannel: "SDK",
+//         browserJavaEnabled:
+//           browserInfo?.javaEnabled || false,
+
+//         browserJavascriptEnabled: true,
+
+//         browserLanguage:
+//           browserInfo?.language || 'en-US',
+
+//         browserColorDepth: String(
+//           browserInfo?.colorDepth || 24,
+//         ),
+
+//         browserScreenHeight: String(
+//           browserInfo?.screenHeight || 900,
+//         ),
+
+//         browserScreenWidth: String(
+//           browserInfo?.screenWidth || 1440,
+//         ),
+
+//         browserTimeZone: String(
+//           browserInfo?.timeZone || 0,
+//         ),
+
+//         browserUserAgent:
+//           browserInfo?.userAgent || '',
+
+//         browserAcceptHeader:
+//           browserInfo?.acceptHeader || 'application/json',
+//       };
+
+//       // ==============================
+//       // Optional 3DS Requestor
+//       // ==============================
+//       const requestorId =
+//         this.configService.get('THREEDS_REQUESTOR_ID');
+
+//       const requestorName =
+//         this.configService.get('THREEDS_REQUESTOR_NAME');
+
+//       if (
+//         requestorId &&
+//         requestorId !== 'your_3ds_requestor_id'
+//       ) {
+//         request.consumerAuthenticationInformation.requestorId =
+//           requestorId;
+
+//         request.consumerAuthenticationInformation.requestorName =
+//           requestorName;
+//       }
+
+//       // ==============================
+//       // AFT
+//       // ==============================
+//       if (isAft) {
+//         request.processingInformation = {
+//           actionList: ['CONSUMER_AUTHENTICATION'],
+//           commerceIndicator: 'internet',
+//         };
+
+//         request.paymentInformation.card.aft = true;
+//       }
+
+//       console.log(
+//         '🔥 CHECK ENROLLMENT REQUEST:',
+//         JSON.stringify(request, null, 2),
+//       );
+
+//       payerAuthInstance.checkPayerAuthEnrollment(
+//         request,
+//         (error, data, response) => {
+//           if (error) {
+//             console.log(
+//               '❌ Enrollment Error:',
+//               error.response
+//                 ? error.response.text
+//                 : error,
+//             );
+
+//             return reject(
+//               error.response
+//                 ? JSON.parse(error.response.text)
+//                 : error,
+//             );
+//           }
+
+//           console.log(
+//             '✅ Enrollment Response:',
+//             JSON.stringify(data, null, 2),
+//           );
+
+//           resolve(data);
+//         },
+//       );
+//     } catch (err: any) {
+//       reject({
+//         status: 'failed',
+//         message:
+//           err.message || 'Check enrollment failed',
+//       });
+//     }
+//   });
+// }
 async checkEnrollment(body: any) {
   return new Promise(async (resolve, reject) => {
     try {
       const {
         referenceId,
-      customer_id,
+        customer_id,
         amount,
         currency,
-
         billTo,
-        browserInfo,
-
+        browserInfo = {},
         isAft = false,
       } = body;
-console.log("referenceId",referenceId)
-console.log("costomerId",customer_id)
+
+      console.log("Body:", JSON.stringify(body, null, 2));
+
       const apiClient = new cybersourceRestApi.ApiClient();
 
       const payerAuthInstance =
@@ -327,17 +496,16 @@ console.log("costomerId",customer_id)
       // Client Reference
       // ==============================
       request.clientReferenceInformation = {
-        code:'AUTH_' + Date.now(),
+        code: "AUTH_" + Date.now(),
       };
 
       // ==============================
-      // Card Information
+      // Payment Information
       // ==============================
       request.paymentInformation = {
         customer: {
-      id: customer_id,
-      
-    },
+          id: customer_id,
+        },
       };
 
       // ==============================
@@ -346,66 +514,60 @@ console.log("costomerId",customer_id)
       request.orderInformation = {
         amountDetails: {
           totalAmount: String(amount),
-          currency: currency || 'USD',
+          currency: currency || "USD",
         },
-        billTo: billTo,
+        billTo,
       };
 
       // ==============================
-      // Consumer Authentication
+      // Consumer Authentication Information
       // ==============================
       request.consumerAuthenticationInformation = {
         referenceId,
-        returnUrl: this.configService.get('RETURN_URL'),
 
-        challengeCode: '05',
-         challengePreference: "01"  ,
+        returnUrl: this.configService.get("RETURN_URL"),
 
-        transactionMode: 'BROWSER',
+        challengeCode: "05",
+        challengePreference: "01",
+        deviceChannel: browserInfo.deviceChannel,
+          deviceType:browserInfo.deviceType,
+    mobileDeviceType:browserInfo.mobileDeviceType,
+        // ==========================
+        // USE ALL YOUR browserInfo FIELDS
+        // ==========================
+        browserJavaEnabled: browserInfo.javaEnabled ?? false,
 
-        browserJavaEnabled:
-          browserInfo?.javaEnabled || false,
+        browserJavascriptEnabled:browserInfo.browserJavascriptEnabled ??true,
 
-        browserJavascriptEnabled: true,
+        browserLanguage: browserInfo.browserLanguage ?? "en-US",
 
-        browserLanguage:
-          browserInfo?.language || 'en-US',
+        browserColorDepth: String(browserInfo.browserColorDepth ?? 24),
 
-        browserColorDepth: String(
-          browserInfo?.colorDepth || 24,
-        ),
+        browserScreenHeight: String(browserInfo.browserScreenHeight ?? 900),
 
-        browserScreenHeight: String(
-          browserInfo?.screenHeight || 900,
-        ),
+        browserScreenWidth: String(browserInfo.browserScreenWidth ?? 1440),
 
-        browserScreenWidth: String(
-          browserInfo?.screenWidth || 1440,
-        ),
-
-        browserTimeZone: String(
-          browserInfo?.timeZone || 0,
-        ),
+        browserTimeZone: String(browserInfo.browserTimeZone ?? 0),
 
         browserUserAgent:
-          browserInfo?.userAgent || '',
+          browserInfo.browserUserAgent ?? "",
 
         browserAcceptHeader:
-          browserInfo?.acceptHeader || 'application/json',
+          browserInfo.browserAcceptHeader ?? "application/json",
       };
 
       // ==============================
       // Optional 3DS Requestor
       // ==============================
       const requestorId =
-        this.configService.get('THREEDS_REQUESTOR_ID');
+        this.configService.get("THREEDS_REQUESTOR_ID");
 
       const requestorName =
-        this.configService.get('THREEDS_REQUESTOR_NAME');
+        this.configService.get("THREEDS_REQUESTOR_NAME");
 
       if (
         requestorId &&
-        requestorId !== 'your_3ds_requestor_id'
+        requestorId !== "your_3ds_requestor_id"
       ) {
         request.consumerAuthenticationInformation.requestorId =
           requestorId;
@@ -419,27 +581,25 @@ console.log("costomerId",customer_id)
       // ==============================
       if (isAft) {
         request.processingInformation = {
-          actionList: ['CONSUMER_AUTHENTICATION'],
-          commerceIndicator: 'internet',
+          actionList: ["CONSUMER_AUTHENTICATION"],
+          commerceIndicator: "internet",
         };
 
-        request.paymentInformation.card.aft = true;
+        request.paymentInformation["card"] = {
+          aft: true,
+        };
       }
 
-      console.log(
-        '🔥 CHECK ENROLLMENT REQUEST:',
-        JSON.stringify(request, null, 2),
-      );
+      console.log("🔥 FINAL CHECK ENROLLMENT REQUEST:");
+      console.log(JSON.stringify(request, null, 2));
 
       payerAuthInstance.checkPayerAuthEnrollment(
         request,
-        (error, data, response) => {
+        (error, data) => {
           if (error) {
             console.log(
-              '❌ Enrollment Error:',
-              error.response
-                ? error.response.text
-                : error,
+              "❌ Enrollment Error:",
+              error.response ? error.response.text : error,
             );
 
             return reject(
@@ -449,19 +609,18 @@ console.log("costomerId",customer_id)
             );
           }
 
-          console.log(
-            '✅ Enrollment Response:',
-            JSON.stringify(data, null, 2),
-          );
+          console.log("✅ Enrollment Response:");
+          console.log(JSON.stringify(data, null, 2));
 
           resolve(data);
         },
       );
     } catch (err: any) {
+      console.error(err);
+
       reject({
-        status: 'failed',
-        message:
-          err.message || 'Check enrollment failed',
+        status: "failed",
+        message: err.message || "Check enrollment failed",
       });
     }
   });
