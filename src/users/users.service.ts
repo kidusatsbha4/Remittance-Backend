@@ -286,11 +286,12 @@ async login(loginDto: LoginDto, res: Response) {
 const token = await this.jwtService.signAsync(payload);
 
    res.cookie('access_token', token, {
-    httpOnly: true,
-    secure: false, // localhost only
-    sameSite: false,
-    maxAge: 30 * 24 * 60 * 60 * 1000,
-  });
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+
 //   res.cookie('access_token', token, {
 //   httpOnly: true,
 //   secure: true,   

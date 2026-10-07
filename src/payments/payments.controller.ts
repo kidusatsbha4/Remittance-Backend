@@ -58,7 +58,7 @@ getCardForm(@Res() res: Response) {
     <style>
         :root {
             --wegagen-blue: #003366;
-            --wegagen-orange: #FF6B35;
+            --wegagen-orange: #0b6335;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -563,7 +563,7 @@ async challengeReturn(
           '*'
         );
       </script>
-      Authentication Complete...
+      Authentication Complete... 
     </body>
     </html>
   `);
@@ -574,11 +574,19 @@ async challengeReturn(
 //     ttl: 60 * 1000,
 //   },
 // })
-  // @UseGuards(AuthGuard)
+   @UseGuards(AuthGuard)
   @Post('pay')
 @HttpCode(HttpStatus.OK)
 async pay(@Body() body: any, @Request() req) {
   return this.paymentsService.pay(body, req.user);
+}
+
+// ✅ NEW ENDPOINT: Pay for Cash Pickup
+@UseGuards(AuthGuard)
+@Post('pay/cash-pickup')
+@HttpCode(HttpStatus.OK)
+async payCashPickup(@Body() body: any, @Request() req) {
+  return this.paymentsService.payCashPickup(body, req.user);
 }
 
 @Post('search')

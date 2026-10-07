@@ -5,6 +5,7 @@ import { OneToMany,OneToOne  } from 'typeorm';
 import { UserRole } from '../../user-roles/entities/user-role.entity';
 import { Kyc } from '../../kyc/entities/kyc.entity';
 import { Manual } from '../../manuals/entities/manual.entity';
+import { CashPickup } from '../../cash-pickup/entities/cash-pickup.entity';
 
 
 @Entity()
@@ -14,6 +15,7 @@ export class User {
 
   @Column({ length: 50 })
   first_name: string;
+
 
   @Column({ length: 50 })
   last_name: string;
@@ -48,5 +50,8 @@ otp_verified: boolean;
 
 @OneToMany(() => Manual, (manual) => manual.sender_id)
 sentManuals: Manual[];
+
+@OneToMany(() => CashPickup, (cashPickup) => cashPickup.sender)
+sentCashPickups: CashPickup[];
 }
 

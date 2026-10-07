@@ -13,6 +13,8 @@ import { Repository } from 'typeorm';
 import axios from 'axios';
 import * as crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
+import { CashPickupService } from '../cash-pickup/cash-pickup.service';
+import { CreateCashPickupDto } from '../cash-pickup/dto/create-cash-pickup.dto';
 
 const sessions = new Map(); // swap with Redis in production
 
@@ -54,6 +56,7 @@ export class PaymentsService {
     private internalTransferService: InternalTransferService,
     private transactionsService: TransactionsService,
     private manualService: ManualService,
+    private cashPickupService: CashPickupService,
     @InjectRepository(TransferType)
     private transferTypeRepo: Repository<TransferType>,
 
@@ -522,52 +525,90 @@ async checkEnrollment(body: any) {
       // ==============================
       // Consumer Authentication Information
       // ==============================
-      request.consumerAuthenticationInformation = {
-        referenceId,
+    //   request.consumerAuthenticationInformation = {
+    //     referenceId,
 
-        returnUrl: this.configService.get("RETURN_URL"),
+    //     returnUrl: this.configService.get("RETURN_URL"),
 
-        challengeCode: "05",
-        challengePreference: "01",
-        deviceChannel: browserInfo.deviceChannel,
-          deviceType:browserInfo.deviceType,
-    mobileDeviceType:browserInfo.mobileDeviceType,
-        // ==========================
-        // USE ALL YOUR browserInfo FIELDS
-        // ==========================
-        browserJavaEnabled: browserInfo.javaEnabled ?? false,
+    //     challengeCode: "05",
+    //     challengePreference: "01",
+    //     deviceChannel: browserInfo.deviceChannel,
+    //       deviceType:browserInfo.deviceType,
+    // mobileDeviceType:browserInfo.mobileDeviceType,
+    // transactionMode:browserInfo.transactionMode,
+    //     // ==========================
+    //     // USE ALL YOUR browserInfo FIELDS
+    //     // ==========================
+    //     browserJavaEnabled: browserInfo.javaEnabled ?? false,
 
-        browserJavascriptEnabled:browserInfo.browserJavascriptEnabled ??true,
+    //     browserJavascriptEnabled:browserInfo.browserJavascriptEnabled ??true,
 
-        browserLanguage: browserInfo.browserLanguage ?? "en-US",
+    //     browserLanguage: browserInfo.browserLanguage ?? "en-US",
 
-        browserColorDepth: String(browserInfo.browserColorDepth ?? 24),
+    //     browserColorDepth: String(browserInfo.browserColorDepth ?? 24),
 
-        browserScreenHeight: String(browserInfo.browserScreenHeight ?? 900),
+    //     browserScreenHeight: String(browserInfo.browserScreenHeight ?? 900),
 
-        browserScreenWidth: String(browserInfo.browserScreenWidth ?? 1440),
+    //     browserScreenWidth: String(browserInfo.browserScreenWidth ?? 1440),
 
-        browserTimeZone: String(browserInfo.browserTimeZone ?? 0),
+    //     browserTimeZone: String(browserInfo.browserTimeZone ?? 0),
 
-        browserUserAgent:
-          browserInfo.browserUserAgent ?? "",
+    //     browserUserAgent:
+    //       browserInfo.browserUserAgent ?? "",
 
-        browserAcceptHeader:
-          browserInfo.browserAcceptHeader ?? "application/json",
-      };
+    //     browserAcceptHeader:
+    //       browserInfo.browserAcceptHeader ?? "application/json",
+    //   };
+// ✅ KEEP THIS - Required for 3DS flow
+request.consumerAuthenticationInformation = {
+  referenceId,
+  returnUrl: this.configService.get("RETURN_URL"),
+  challengeCode: "05",
+  challengePreference: "01",
+  deviceChannel: "BROWSER", // Keep as BROWSER for compatibility
+  transactionMode: "eCommerce", // Keep as eCommerce for compatibility
+  
+  // Remove browser fields from here (they go in deviceInformation)
+};
+
+// ✅ ADD THIS - Required for device data  
+request.deviceInformation = {
+  ipAddress:  "139.130.4.5",
+  
+  // ✅ Use EXACT field names from CyberSource API docs:
+  httpAcceptBrowserValue: browserInfo?.browserAcceptHeader || 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',//Not applicable in native Flutter
+  httpAcceptContent: "test", // Static value as shown in docs  ,Not applicable
+  httpBrowserLanguage: (browserInfo?.browserLanguage || 'en-US').replace('-', '_'), // Convert "en-US" to "en_us"
+  httpBrowserJavaEnabled: browserInfo?.browserJavaEnabled || false,
+  httpBrowserJavaScriptEnabled: browserInfo?.browserJavaScriptEnabled || false, // Note: false in docs
+  httpBrowserColorDepth: browserInfo?.browserColorDepth || '24',
+  httpBrowserScreenHeight: browserInfo?.browserScreenHeight || '100000', // Use large values like docs
+  httpBrowserScreenWidth: browserInfo?.browserScreenWidth || '100000',  // Use large values like docs  
+  httpBrowserTimeDifference: browserInfo?.browserTimeZone || '300',
+  userAgentBrowserValue: browserInfo?.browserUserAgent || 'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36',
+  
+  // Optional: Add rawData if needed
+  rawData: [
+    {
+      data: "",
+      provider: ""
+    }
+  ]
+};
+
 
       // ==============================
       // Optional 3DS Requestor
       // ==============================
       const requestorId =
-        this.configService.get("THREEDS_REQUESTOR_ID");
+        this.configService.get("THREE_DS_REQUESTOR_ID");
 
       const requestorName =
-        this.configService.get("THREEDS_REQUESTOR_NAME");
+        this.configService.get("THREE_DS_REQUESTOR_NAME");
 
       if (
         requestorId &&
-        requestorId !== "your_3ds_requestor_id"
+        requestorId !==  `{this.configService.get("THREE_DS_REQUESTOR_ID")}`
       ) {
         request.consumerAuthenticationInformation.requestorId =
           requestorId;
@@ -1297,13 +1338,15 @@ try {
 // }
   async pay(body: any, user: any) {
     console.log("body",body)
+      console.log("user",user)
   return new Promise((resolve, reject) => {
     const {
       transientToken,
       payload,
       amount,
       customer_id,
-      exchange_rate
+      exchange_rate,
+      
       
     } = body;
     const paymentAmount = String(amount || '10.00');
@@ -1343,19 +1386,21 @@ console.log("customer_id............", customerId)
         totalAmount: paymentAmount,
         currency: 'USD',
       },
-      billTo: {
-        firstName: 'John',
-        lastName: 'Doe',
-        address1: '1 Market St',
-        locality: 'San Francisco',
-        administrativeArea: 'CA',
-        postalCode: '94105',
-        country: 'US',
-        email: 'test@cybs.com',
-        phoneNumber: '4158880000',
-      },
+    //   billTo: {
+    //     firstName: 'John',
+    //     lastName: 'Doe',
+    //     address1: '1 Market St',
+    //     locality: 'San Francisco',
+    //     administrativeArea: 'CA',
+    //     postalCode: '94105',
+    //     country: 'US',
+    //     email: 'test@cybs.com',
+    //     phoneNumber: '4158880000',
+    //   },
     };
 
+    // =================================================
+    // SENDER INFORMATION (AFT)
     // =================================================
     // PROCESS 3DS DATA
     // =================================================
@@ -1376,7 +1421,7 @@ console.log("customer_id............", customerId)
           authInfo.authenticationTransactionId,
       };
 
-      commerceIndicator = 'vbv';
+      commerceIndicator = authInfo.ecommerceIndicator;
     }
 
     // MASTERCARD FLOW
@@ -1394,7 +1439,7 @@ console.log("customer_id............", customerId)
           authInfo.authenticationTransactionId,
       };
 
-      commerceIndicator = 'spa';
+      commerceIndicator = authInfo.ecommerceIndicator;
     }
 
     if (
@@ -1415,10 +1460,9 @@ console.log("customer_id............", customerId)
     request.processingInformation = {
       capture: true,
       commerceIndicator,
-  //    actionList: ["AFT"],
-  // authorizationOptions: {
-  //   aftIndicator: true,
-  // },
+      authorizationOptions: {
+        aftIndicator: true,
+      },
     };
 
     // =================================================
@@ -1459,7 +1503,25 @@ console.log("payment data",data)
               cybersource: data,
             });
           }
-
+//  return resolve({
+//   success: true,
+//   message: 'Payment completed successfully.',
+//   transfer: {
+//     fromAccount: null,
+//     fromAccountHolder: null,
+//     toAccount: null,
+//     toAccountHolder: null,
+//     amount: null,
+//     remark: null,
+//     refNo: null,
+//     date: null,
+//     status: true,
+//     statusDesc: 'The transaction could not be completed. Please verify details and try again',
+//     currency: null,
+//     etbAmount: null,
+//   },
+  
+// });
           let transferType: TransferTypeEnum | null = null;
           try {
             transferType = await this.getActiveTransferType();
@@ -1477,7 +1539,7 @@ console.log("payment data",data)
                 toAccountHolder,
                 amount,
                 currency: 'ETB',
-                toCurrency,
+                toCurrency:'ETB',
                 eCurrency,
                 remark,
                 bonus,
@@ -1499,6 +1561,7 @@ console.log("payment data",data)
             });
           }
 
+
           // =========================================
           // 🔥 PREPARE INTERNAL TRANSFER DTO
           // =========================================
@@ -1518,7 +1581,7 @@ console.log("payment data",data)
           // 🔥 CALL INTERNAL TRANSFER
           const transferResponse =
             await this.internalTransferService.transfer(transferDto);
-
+console.log(".........transferResponse",transferResponse)
           // =========================================
           // 🔥 CHECK TRANSFER RESPONSE
           // =========================================
@@ -1561,13 +1624,14 @@ console.log("payment data",data)
             {
               beneficiary_acc: toAccount,
               amount,
-              currency: 'ETB',
+              currency: eCurrency,
               exchange_rate: exchange_rate || null,
               status: 'PAID', // ✅ UPDATED
               channel: 'card',
               external_ref: data.id, // ✅ from CyberSource
               failure_reason: null,
               completed_at: new Date(),
+              bonus
             },
             user,
           );
@@ -1578,12 +1642,18 @@ console.log("payment data",data)
           //     transaction,
 
           // });
-          resolve(transferResponse);
+          console.log("transferResponse..............",transferResponse)
+       return resolve({
+  success: true,
+  message: 'Payment completed successfully.',
+  transfer: transferResponse,
+  transaction,
+});
 
           // =========================================
           // 🔥 FINAL RESPONSE TO FRONTEND
           // =========================================
-          console.log("response", transaction)
+          //console.log("resp...............onse", transaction)
         } catch (err: any) {
           return reject({
             status: 'failed',
@@ -1653,4 +1723,220 @@ console.log("payload",payload)
 
   return response.data;
 }
+
+  // ✅ NEW METHOD: Pay for Cash Pickup
+  async payCashPickup(body: any, user: any) {
+    console.log("cash pick up")
+    return new Promise(async (resolve, reject) => {
+      const {
+        transientToken,
+        payload,
+        amount,
+        customer_id,
+        exchange_rate,
+        phone_number,
+        first_name,
+        middle_name,
+        last_name,
+        country,
+        state,
+        city,
+        address,
+        relationship_to_sender,
+        currency,
+        expected_amount,
+      } = body;
+console.log("body.................",body)
+      const paymentAmount = String(amount || '10.00');
+      const customerId = customer_id || 'guest_' + Date.now();
+
+      console.log('customer_id............', customerId);
+
+      const apiClient = new cybersourceRestApi.ApiClient();
+
+      const paymentsInstance = new cybersourceRestApi.PaymentsApi(
+        this.configObjP,
+        apiClient,
+      );
+
+      const request = new cybersourceRestApi.CreatePaymentRequest();
+
+      // =================================================
+      // CLIENT REFERENCE
+      // =================================================
+      request.clientReferenceInformation = {
+        code: 'ORDER_' + Date.now(),
+      };
+
+      // =================================================
+      // PAYMENT METHOD
+      // =================================================
+      request.tokenInformation = {
+        transientTokenJwt: transientToken,
+      };
+
+      // =================================================
+      // BILLING
+      // =================================================
+      request.orderInformation = {
+        amountDetails: {
+          totalAmount: paymentAmount,
+          currency: 'USD',
+        },
+        billTo: {
+          firstName: 'John',
+          lastName: 'Doe',
+          address1: '1 Market St',
+          locality: 'San Francisco',
+          administrativeArea: 'CA',
+          postalCode: '94105',
+          country: 'US',
+          email: 'test@cybs.com',
+          phoneNumber: '4158880000',
+        },
+      };
+
+      // =================================================
+      // PROCESS 3DS DATA
+      // =================================================
+      const authInfo = payload?.consumerAuthenticationInformation || {};
+
+      // =================================================
+      // DETECT CARD TYPE + SET 3DS DATA
+      // =================================================
+      let commerceIndicator = 'internet';
+
+      if (authInfo.cavv) {
+        request.consumerAuthenticationInformation = {
+          cavv: authInfo.cavv,
+          xid: authInfo.xid,
+          eciRaw: authInfo.eciRaw,
+          authenticationTransactionId: authInfo.authenticationTransactionId,
+        };
+
+        commerceIndicator = 'vbv';
+      }
+      // MASTERCARD FLOW
+      else if (authInfo.ucafAuthenticationData) {
+        request.consumerAuthenticationInformation = {
+          ucafAuthenticationData: authInfo.ucafAuthenticationData,
+          ucafCollectionIndicator: authInfo.ucafCollectionIndicator,
+          eciRaw: authInfo.eciRaw,
+          authenticationTransactionId: authInfo.authenticationTransactionId,
+        };
+
+        commerceIndicator = 'spa';
+      }
+
+      if (
+        authInfo.authenticationTransactionId ||
+        authInfo.cavv ||
+        authInfo.ucafAuthenticationData
+      ) {
+        request.consumerAuthenticationInformation =
+          request.consumerAuthenticationInformation || {
+            authenticationTransactionId: authInfo.authenticationTransactionId,
+          };
+      }
+
+      // =================================================
+      // PROCESSING (DYNAMIC commerceIndicator)
+      // =================================================
+      request.processingInformation = {
+        capture: true,
+        commerceIndicator,
+         businessApplicationId: "PP",
+  //    actionList: ["AFT"],
+  authorizationOptions: {
+    aftIndicator: true,
+  },
+      };
+
+      // =================================================
+      // LOG REQUEST
+      // =================================================
+      console.log(
+        '🔥 FINAL CASH PICKUP PAYMENT REQUEST:',
+        JSON.stringify(request, null, 2),
+      );
+
+      // =================================================
+      // CALL CYBERSOURCE
+      // =================================================
+      paymentsInstance.createPayment(
+        request,
+        async (error, data) => {
+          if (error) {
+            console.log(
+              '❌ PAYMENT ERROR:',
+              error.response ? error.response.text : error,
+            );
+
+            return reject(
+              error.response ? JSON.parse(error.response.text) : error,
+            );
+          }
+
+          console.log('payment data', data);
+
+          try {
+            // 🔥 CHECK PAYMENT STATUS - SAME AS PAY METHOD
+            if (data.status !== 'AUTHORIZED') {
+              return reject({
+                status: data.status,
+                message: data,
+                cybersource: data,
+              });
+            }
+
+            // =========================================
+            // 🔥 CREATE CASH PICKUP RECORD
+            // =========================================
+            const cashPickupDto: CreateCashPickupDto = {
+              phone_number,
+              first_name,
+              middle_name,
+              last_name,
+              external_reference_id: data.id, // ✅ Use data.id from CyberSource
+              country,
+              state,
+              city,
+              address,
+              relationship_to_sender,
+              currency: currency || 'ETB',
+              amount: parseFloat(amount) || 0,
+              expected_amount: parseFloat(expected_amount) || parseFloat(amount) || 0,
+              exchange_rate: parseFloat(exchange_rate) || 1.0,
+            };
+
+            console.log('🔥 Creating cash pickup:', cashPickupDto);
+
+            const cashPickup = await this.cashPickupService.create(
+              cashPickupDto,
+              user,
+            );
+
+            // =========================================
+            // 🔥 FINAL RESPONSE
+            // =========================================
+            return resolve({
+              status: 'success',
+              message:
+                'Payment authorized and cash pickup created successfully',
+              payment: data,
+              cashPickup,
+            });
+          } catch (err: any) {
+            console.error('❌ Cash pickup creation error:', err);
+
+            return reject({
+              status: 'failed',
+              message: err.message || 'Cash pickup creation failed',
+              error: err,
+            });
+          }
+        },
+      );
+    });
+  }
 }

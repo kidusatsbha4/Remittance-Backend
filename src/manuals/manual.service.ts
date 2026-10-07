@@ -75,7 +75,11 @@ console.log("transaction",manual)
   }
 
   async findOne(id: number) {
-    const item = await this.repo.findOne({ where: { id } });
+    const item = await this.repo.findOne({ 
+      where: { id },
+      relations: ['sender_id'] // ✅ Load the sender_id relationship
+    });
+    console.log("item",item)
     if (!item) throw new NotFoundException('Manual record not found');
     return item;
   }
@@ -86,89 +90,89 @@ console.log("transaction",manual)
   }
 
   // ✅ CHANGE STATUS → PAID
-  async markAsPaid(id: number) {
+  async markAsPaid(id: number, user: any) {
     const record = await this.findOne(id);
 
+    // Extract sender_id - record.sender_id is now a User object with .id property
+    let sender_id: number;
     
-const fromAccount = '0083920830101';
-const fromAccountHolder = 'MELAT TESFAYE BIREMJI';
-        const toAccount =record.toAccount;
-        const toAccountHolder= record.toAccountHolder;
-        const currency =record.currency;
-        const toCurrency=record.toCurrency;
-        const amount ="100";
-        const remark=record.remark;
-        const sender_id=record.sender_id
-        const exchange_rate=record.exchange_rate
-        const external_ref =record.external_ref
+    if (typeof record.sender_id === 'object' && record.sender_id?.id) {
+      sender_id = record.sender_id.id;
+    } else if (typeof record.sender_id === 'number') {
+      sender_id = record.sender_id;
+    } else {
+      sender_id = user?.sub;
+    }
 
-        const transferDto: InternalTransferDto = {
-          fromAccount,
-          fromAccountHolder,
-          toAccount,
-          toAccountHolder,
-          currency,
-          toCurrency,
-          amount,
-          remark,
-          
-        };
-        
-        console.log("transferDto",transferDto)
-                // 🔥 CALL INTERNAL TRANSFER
-                const transferResponse =
-                  await this.internalTransferService.transfer(transferDto);
-        
-                // =========================================
-                // 🔥 CHECK TRANSFER RESPONSE
-                // =========================================
-                console.log("transferResponse",transferResponse)
-                console.log("transferResponse.data.status",transferResponse.status)
-        //         if (!transferResponse.status) {
-        //   return transferResponse
-        // }
-        // resolve(transferResponse);
-        
-                const txData = transferResponse.data;
-        
-                // =========================================
-                // 🔥 SAVE TRANSACTION
-                // =========================================
-                const transaction=await this.transactionsService.create(
-                  {
-                    beneficiary_acc: toAccount,
-                    amount,
-                    currency: 'ETB',
-                    exchange_rate: exchange_rate || null,
-                    status: 'PAID', // ✅ UPDATED
-                    channel: 'card',
-                    external_ref, // ✅ from CyberSource
-                    failure_reason: null,
-                    completed_at: new Date()
-                    
-                  },
-                  sender_id
-                );
-        
-        //         return resolve({
-          
-        //     transferResponse,
-        //     transaction,
-          
-        // });
-        
-if (transferResponse.status){
-        record.status = 'paid';
+    if (!sender_id) {
+      throw new Error('Cannot determine sender ID for transaction');
+    }
 
-   return this.repo.save(record);
-    
-}
+    console.log('Using sender_id:', sender_id);
 
-else {
-    
-}
+    const fromAccount = '0083920830101';
+    const fromAccountHolder = 'MELAT TESFAYE BIREMJI';
+    const toAccount = record.toAccount;
+    const toAccountHolder = record.toAccountHolder;
+    const currency = record.currency;
+    const toCurrency = record.toCurrency;
+    const amount = String(record.amount);
+    const remark = record.remark;
+    const exchange_rate = record.exchange_rate;
+    const external_ref = record.external_ref;
+    const eCurrency = record.eCurrency;
+   const bonus = record.bonus;
+    const transferDto: InternalTransferDto = {
+      fromAccount,
+      fromAccountHolder,
+      toAccount,
+      toAccountHolder,
+      currency,
+      toCurrency,
+      amount,
+      remark,
+    };
 
+    console.log('transferDto', transferDto);
+    // 🔥 CALL INTERNAL TRANSFER
+    const transferResponse =
+      await this.internalTransferService.transfer(transferDto);
 
+    // =========================================
+    // 🔥 CHECK TRANSFER RESPONSE
+    // =========================================
+    console.log('transferResponse', transferResponse);
+    console.log('transferResponse.status', transferResponse.status);
+
+    if (transferResponse.status !==true) {
+      throw new Error('Transfer failed: ' + (transferResponse.statusDesc || 'Unknown error'));
+    }
+
+    // =========================================
+    // 🔥 SAVE TRANSACTION
+    // =========================================
+    const transaction = await this.transactionsService.create(
+      {
+        beneficiary_acc: toAccount,
+        amount,
+        currency: eCurrency,
+        exchange_rate: exchange_rate || null,
+        status: 'PAID',
+        channel: 'card',
+        external_ref,
+        failure_reason: null,
+        completed_at: new Date(),
+        bonus
+      },
+      { sub: sender_id }, // ✅ Pass user object format that transactionsService expects
+    );
+
+    if (transferResponse.status) {
+      record.status = 'paid';
+      return this.repo.save(record);
+    } else {
+      throw new Error('Transfer failed: ' + (transferResponse.statusDesc || 'Unknown error'));
+    }
   }
 
   async remove(id: number) {

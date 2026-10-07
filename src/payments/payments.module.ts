@@ -8,6 +8,7 @@ import { TransactionsModule } from '../transactions/transactions.module';
 import { ManualModule } from '../manuals/manual.module';
 import { TransferType } from '../transfer-type/entities/transfer-type.entity';
 import { TransferTypeModule } from '../transfer-type/transfer-type.module';
+import { CashPickupModule } from '../cash-pickup/cash-pickup.module';
 
 
 
@@ -16,7 +17,7 @@ import { TransferTypeModule } from '../transfer-type/transfer-type.module';
 
 @Module({
   imports: [AuthModule,ConfigModule, InternalTransferModule, // ✅ FIXED
-    TransactionsModule,ManualModule,TransferType,TransferTypeModule],
+    TransactionsModule,ManualModule,TransferType,TransferTypeModule,CashPickupModule],
   controllers: [PaymentsController],
   providers: [PaymentsService],
 })

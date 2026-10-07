@@ -1,151 +1,112 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe,Logger  } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
-import { Reflector } from '@nestjs/core'; // ✅ ADD THIS
+import { Reflector } from '@nestjs/core';
 import cookieParser from 'cookie-parser';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { LoggingInterceptor } from './common/logging/logging.interceptor';
+import { GlobalExceptionFilter } from './common/logging/global-exception.filter';
+import { ErrorLogService } from './common/logging/error.service';
+import { PerformanceLogService } from './common/logging/performance.service';
 import * as fs from 'fs';
+import * as path from 'path';
 import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
-
-  //  const httpsOptions = {
-  //   key: fs.readFileSync('./ssl/privkey.pem'),
-  //   cert: fs.readFileSync('./ssl/cert.pem'),
-  // };
- const httpsOptions = {
+  const httpsOptions = {
     key: fs.readFileSync('./ssl/wegagenSSl2025.key'),
     cert: fs.readFileSync('./ssl/chaincertwegagenSSl2025.crt'),
   };
-  const app = await NestFactory.create<NestExpressApplication>(AppModule
-    , {
+
+  const app = await NestFactory.create<NestExpressApplication>(AppModule,
+     {
     httpsOptions,
-    // logger: ['log', 'error', 'warn', 'debug', 'verbose'],
   }
 );
 
   app.set('trust proxy', 1);
-
-// Register cookie parser middleware
-  app.use(cookieParser());
-
- app.enableCors({
-  //  origin: ['http://localhost:3000', 'http://10.195.49.18:3000'], // Vue app URL
-   origin: true,
-  credentials: true,
-  // allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
-});
-
-// app.enableCors({
-//   origin: [
-//     process.env.FRONTEND_URL,
-//     process.env.ADMIN_URL,
-//   ],
-//   credentials: true,
-//   methods: [
-//     'GET',
-//     'POST',
-//     'PUT',
-//     'PATCH',
-//     'DELETE',
-//     'OPTIONS',
-//   ],
-//   allowedHeaders: [
-//     'Authorization',
-//     'Content-Type',
-//     'Accept',
-//   ],
-// });
-  // This enables the validation constraints in your DTOs
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true, // Strips away properties that don't have decorators
-    forbidNonWhitelisted: true, // Throws error if extra properties are sent
-    transform: true, // Automatically transforms payloads to DTO instances
-  }));
-// Apply the interceptor to every route in the app
-   const reflector = app.get(Reflector);
-app.useGlobalInterceptors(new TransformInterceptor(reflector));
-  await app.listen(process.env.PORT ?? 3001);
-  Logger.log(
-    `Application is running on: https://localhost:${process.env.PORT ?? 3001}`,
-    'Bootstrap',
-  );
-}
-bootstrap();
-
-/*
-app.setGlobalPrefix('api');
-
-app.useBodyParser('json', {
-  limit: '10mb',
-});
-
-*/
-
-// import helmet from 'helmet';
-// import cookieParser from 'cookie-parser';
-
-// app.set('trust proxy', 1);
-
-// app.use(cookieParser());
-
 // app.use(
 //   helmet({
-//     crossOriginEmbedderPolicy: false,
-
 //     contentSecurityPolicy: {
 //       directives: {
-//         defaultSrc: ["'self'"],
-
-//         scriptSrc: [
-//           "'self'",
-//           "'unsafe-inline'",
-//           "'unsafe-eval'",
-//           'https://testflex.cybersource.com',
-//         ],
-
-//         frameSrc: [
-//           'https://testflex.cybersource.com',
-//         ],
-
-//         connectSrc: [
-//           "'self'",
-//           'https://testflex.cybersource.com',
-//         ],
-
+//         defaultSrc: ["'self'", "https://testflex.cybersource.com"],
+//         scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://testflex.cybersource.com"],
+//         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://testflex.cybersource.com"],
+//         fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+//         frameSrc: ["'self'", "https://testflex.cybersource.com"],
 //         imgSrc: [
-//           "'self'",
-//           'data:',
-//           'https://testflex.cybersource.com',
+//           "'self'", 
+//           "data:", 
+//           "https://testflex.cybersource.com", 
+//           "https://upload.wikimedia.org", 
+//           "https://logos-world.net", 
+//           "https://10.195.49.18"
 //         ],
-
-//         styleSrc: [
-//           "'self'",
-//           "'unsafe-inline'",
-//           'https://fonts.googleapis.com',
-//         ],
-
-//         fontSrc: [
-//           "'self'",
-//           'https://fonts.gstatic.com',
-//         ],
+//         connectSrc: ["'self'", "https://testflex.cybersource.com", "https://10.195.49.18"],
 //       },
 //     },
-//   }),
+//   })
 // );
 
-// For Production CyberSource
-
-// I would further add:
-
-// helmet({
-//   hsts: {
+// if (isProd) {
+//   app.use(helmet.hsts({
 //     maxAge: 31536000,
 //     includeSubDomains: true,
-//     preload: true,
-//   },
+//     preload: true
+//   }));
 
-//   referrerPolicy: {
-//     policy: 'strict-origin-when-cross-origin',
-//   },
-// });
+//   app.use(helmet.noSniff());
+// app.use(helmet.frameguard({ action: 'sameorigin' }));
+// }
+  // Serve static files from uploads directory
+  const uploadsPath = path.join(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadsPath)) {
+    fs.mkdirSync(uploadsPath, { recursive: true });
+  }
+  app.useStaticAssets(uploadsPath, {
+    prefix: '/uploads',
+  });
+
+  // Register cookie parser middleware
+  app.use(cookieParser());
+
+  app.enableCors({
+    origin: [
+      'http://10.195.49.19:3000',
+      'http://10.195.49.18:3000',
+      'http://10.195.49.21:5173',
+      'http://localhost:3000'
+    ],
+    credentials: true,
+  });
+
+  // Global validation pipe
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
+
+  // Get logging services
+  const reflector = app.get(Reflector);
+  const performanceLog = app.get(PerformanceLogService);
+  const errorLog = app.get(ErrorLogService);
+
+  // Apply global interceptors
+  app.useGlobalInterceptors(
+    new TransformInterceptor(reflector),
+    new LoggingInterceptor(performanceLog, errorLog),
+  );
+
+  // Apply global exception filter
+  app.useGlobalFilters(new GlobalExceptionFilter(errorLog));
+
+  await app.listen(process.env.PORT ?? 3001);
+  console.log(
+    `Application is running on: https://localhost:${process.env.PORT ?? 3001}`,
+  );
+}
+
+bootstrap();

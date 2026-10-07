@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule, ConfigService } from '@nestjs/config'; // UPDATED
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
 import { PermissionsModule } from './permissions/permissions.module';
@@ -12,29 +12,18 @@ import { TransactionsModule } from './transactions/transactions.module';
 import { InternalTransferModule } from './internal-transfer/internal-transfer.module';
 import { PaymentsModule } from './payments/payments.module';
 import { ManualModule } from './manuals/manual.module';
-import {BonusModule } from './bonus/bonus.module';
-import {TransferTypeModule } from './transfer-type/transfer-type.module';
-//import { APP_GUARD } from '@nestjs/core';
-//import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-
-
-
-
+import { BonusModule } from './bonus/bonus.module';
+import { TransferTypeModule } from './transfer-type/transfer-type.module';
+import { CashPickupModule } from './cash-pickup/cash-pickup.module';
+import { LoggingModule } from './common/logging/logging.module';
+import { RequestContextMiddleware } from './common/logging/request-context.middleware';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
 @Module({
   imports: [
-    // UPDATED: Added ConfigModule to load .env globally
     ConfigModule.forRoot({ isGlobal: true }),
-//     ThrottlerModule.forRoot([
-//   {
-//     ttl: 60_000,   // 1 minute
-//     limit: 120,    // 120 requests per minute per IP           // max 2 requests
-//   },
-// ]),
-    // UPDATED: Changed to forRootAsync to use environment variables
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -50,18 +39,30 @@ import { AppService } from './app.service';
       }),
       inject: [ConfigService],
     }),
-    UsersModule,RolesModule,PermissionsModule,RolePermissionsModule,UserRolesModule,KycModule,MerchantKeysModule,
-    TransactionsModule,InternalTransferModule,PaymentsModule,ManualModule,BonusModule,TransferTypeModule
+    LoggingModule,
+    UsersModule,
+    RolesModule,
+    PermissionsModule,
+    RolePermissionsModule,
+    UserRolesModule,
+    KycModule,
+    MerchantKeysModule,
+    TransactionsModule,
+    InternalTransferModule,
+    PaymentsModule,
+    ManualModule,
+    BonusModule,
+    TransferTypeModule,
+    CashPickupModule,
   ],
-  controllers: [AppController,],
-  providers: [AppService,
-  //    {
-  //   provide: APP_GUARD,
-  //   useClass: ThrottlerGuard,
-  // },
-],
+  controllers: [AppController],
+  providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(RequestContextMiddleware).forRoutes('*');
+  }
+}
 
 // import { Module } from '@nestjs/common';
 // import { APP_GUARD } from '@nestjs/core';

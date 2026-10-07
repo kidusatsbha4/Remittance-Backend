@@ -34,8 +34,11 @@ export class TransactionsController {
 
   // ✅ MY TRANSACTIONS
   @Get('me')
-  myTransactions(@Req() req) {
-    return this.service.myTransactions(req.user);
+  async myTransactions(@Req() req) {
+     const me= await this.service.myTransactions(req.user);
+     
+     console.log("me",me);
+     return me;
   }
 
   // ✅ GET ONE

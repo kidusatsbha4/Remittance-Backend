@@ -7,7 +7,10 @@ import {
   Param,
   Delete,
   Query,
-  UseGuards,Req
+  UseGuards,
+  Req,
+  UseInterceptors,
+  ClassSerializerInterceptor,
 } from '@nestjs/common';
 import { ManualService } from './manual.service';
 import { CreateManualDto } from './dto/create-manual.dto';
@@ -15,6 +18,7 @@ import { UpdateManualDto } from './dto/update-manual.dto';
 import { AuthGuard } from '../auth/auth.guard';
 import { Request } from 'express';
 
+@UseInterceptors(ClassSerializerInterceptor) // ✅ Serialize relationships
 @Controller('manuals')
 export class ManualController {
   constructor(private readonly service: ManualService) {}
@@ -60,8 +64,8 @@ export class ManualController {
   // ✅ SPECIAL: mark as paid
   @UseGuards(AuthGuard)
   @Patch(':id/pay')
-  markAsPaid(@Param('id') id: string) {
-    return this.service.markAsPaid(+id);
+  markAsPaid(@Param('id') id: string, @Req() req) {
+    return this.service.markAsPaid(+id, req.user);
   }
 
   @UseGuards(AuthGuard)

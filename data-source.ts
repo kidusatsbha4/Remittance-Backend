@@ -12,6 +12,7 @@ import {Transaction } from './src/transactions/entities/transaction.entity'; // 
 import {Manual } from './src/manuals/entities/manual.entity'; // replace with your entity
 import {Bonus } from './src/bonus/entities/bonus.entity'; // replace with your entity
 import {TransferType } from './src/transfer-type/entities/transfer-type.entity'; // replace with your entity
+import {CashPickup } from './src/cash-pickup/entities/cash-pickup.entity'; // replace with your entity
 
 
 
@@ -25,7 +26,7 @@ export const AppDataSource = new DataSource({
   username: 'postgres',
   password: '123',
   database: 'remittance',
-  entities: [User,UserRole,Permission,Role,RolePermission,Kyc,MerchantKey,Transaction,Manual,Bonus,TransferType],
+  entities: [User,UserRole,Permission,Role,RolePermission,Kyc,MerchantKey,Transaction,Manual,Bonus,TransferType,CashPickup],
   migrations: ['src/migrations/*.ts'],
   synchronize: false,
 });

@@ -1,4 +1,3 @@
-// transactions.service.ts
 import {
   Injectable,
   NotFoundException,
@@ -15,18 +14,15 @@ export class TransactionsService {
   ) {}
 
   // ✅ CREATE TRANSACTION
- async create(data: any, user: any) {
-  console.log("user",user)
-  const transaction = this.repo.create({
-    ...data,
-     sender_id: user.sub, // ✅ still works
-    // sender_id: 1, 
-    transaction_ref: 'TX-' + Date.now(),
-  });
-console.log("transaction",transaction)
+  async create(data: any, user: any) {
+    const transaction = this.repo.create({
+      ...data,
+      sender_id: user.sub,
+      transaction_ref: 'TX-' + Date.now(),
+    });
 
-  return this.repo.save(transaction);
-}
+    return this.repo.save(transaction);
+  }
 
   // ✅ GET ALL (WITH FILTERS)
   async findAll(query: any) {
@@ -97,8 +93,9 @@ console.log("transaction",transaction)
 
   // ✅ USER TRANSACTIONS
   async myTransactions(user: any) {
-    return this.repo.find({
-       where: { sender_id: user.sub },
+    console.log("user......me",user)
+    return  this.repo.find({
+      where: { sender_id: user.sub },
       order: { created_at: 'DESC' },
     });
   }

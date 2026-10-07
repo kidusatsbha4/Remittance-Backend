@@ -34,13 +34,16 @@
     "class-validator": "^0.15.1",
     "cookie-parser": "^1.4.7",
     "cybersource-rest-client": "^0.0.77",
+    "dotenv": "^18.0.6",
     "multer": "^2.1.1",
     "nodemailer": "^8.0.5",
     "passport-jwt": "^4.0.1",
     "pg": "^8.20.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
-    "typeorm": "^0.3.28"
+    "typeorm": "^0.3.28",
+    "winston": "^3.19.0",
+    "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

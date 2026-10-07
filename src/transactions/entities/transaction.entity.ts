@@ -38,8 +38,11 @@ export class Transaction {
   @Column({ default: 'ETB' })
   currency: string;
 
-  @Column('decimal', { precision: 18, scale: 6, nullable: true })
+  @Column('decimal', { precision: 18, scale: 2})
   exchange_rate: number;
+
+  @Column('decimal', { precision: 18, scale: 2, nullable: true })
+  bonus: number;
 
   @Column({ default: 'PENDING' })
   status: string;

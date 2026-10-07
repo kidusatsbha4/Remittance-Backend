@@ -7,6 +7,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Expose, Type } from 'class-transformer';
 import { User } from '../../users/entities/user.entity';
 
 @Entity('manuals')
@@ -52,7 +53,9 @@ export class Manual {
   external_ref: string;
 
   // ✅ SENDER RELATION
-  @ManyToOne(() => User, (user) => user.sentManuals)
+  @Expose() // ✅ Expose in response
+  @Type(() => User) // ✅ Transform to User type
+  @ManyToOne(() => User, (user) => user.sentManuals, { nullable: true })
   @JoinColumn({ name: 'sender_id' }) // 👈 DB column name
   sender_id: User;
 

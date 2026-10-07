@@ -90,6 +90,12 @@ changePin(@Request() req, @Body() dto: ChangePinDto) {
 
   return this.usersService.changePin(userId, dto);
 }
+@UseGuards(AuthGuard)
+@Patch('me')
+updateProfile(@Request() req, @Body() updateData: Partial<CreateUserDto>) {
+  const userId = req.user?.sub;
+  return this.usersService.update(userId, updateData);
+}
 
   // PROTECTED: Only logged-in users can update
   @UseGuards(AuthGuard)
